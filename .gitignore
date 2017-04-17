@@ -1,1 +1,4 @@
 __pycache__/
+/gitpathlib.egg-info/
+/dist/
+

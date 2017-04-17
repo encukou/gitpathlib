@@ -8,6 +8,10 @@ An read-only implementation of Python's `pathlib`_ that works on Git trees.
 Installation
 ------------
 
+This library requires `pygit2`_, which can be hard to install.
+You may need to get it installed before installing gitpathlib.
+
+
 In a Python 3 `virtual environment`_, do::
 
     python -m pip install gitpathlib
@@ -18,6 +22,7 @@ To install an editable from a Git checkout::
 
 To install without a virtual envitonment, add the ``--user`` option.
 
+.. _pygit2: http://www.pygit2.org/
 .. _virtual environment: https://docs.python.org/3/library/venv.html
 
 
