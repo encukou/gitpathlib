@@ -69,3 +69,9 @@ def test_dotdot(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/../dir/file')
     tree = testrepo.head.peel(pygit2.Tree).hex
     assert path.parts == (testrepo.path, tree, 'dir', '..', 'dir', 'file')
+
+
+def test_hash(testrepo):
+    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    path2 = gitpathlib.GitPath(testrepo.path, 'master')
+    assert hash(path1) == hash(path2)

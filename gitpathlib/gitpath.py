@@ -54,6 +54,9 @@ class GitPath:
     def parts(self):
         return (repo_path(self._gp_repo), self._gp_base.hex, *self._gp_segments)
 
+    def __hash__(self):
+        return hash((type(self), *self.parts))
+
     def __repr__(self):
         if type(self) == GitPath:
             qualname = 'gitpathlib.GitPath'

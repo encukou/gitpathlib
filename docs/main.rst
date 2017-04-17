@@ -31,7 +31,7 @@ Git Paths
 General properties
 ------------------
 
-Git paths are immutable 
+Git paths are immutable and hashable.
 
 
 
