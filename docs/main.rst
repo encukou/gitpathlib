@@ -150,10 +150,22 @@ Git paths provide the following methods and properties:
         recommended to first call :meth:`GitPath.resolve` so as to resolve
         symlinks and eliminate ".." components.
 
-.. .. autoattribute:: GitPath.name
-.. .. autoattribute:: GitPath.suffix
-.. .. autoattribute:: GitPath.suffixes
-.. .. autoattribute:: GitPath.stem
+.. attribute:: GitPath.name
+
+    A string representing the final path component, excluding the drive and root, if any:
+
+    >>> GitPath('./repo', 'HEAD', 'dir', 'file.txt').name
+    'file.txt'
+
+    The name of the path's root is empty:
+
+    >>> GitPath('./repo', 'HEAD').name
+    ''
+
+.. autoattribute:: GitPath.suffix
+.. autoattribute:: GitPath.suffixes
+.. autoattribute:: GitPath.stem
+
 .. .. automethod:: GitPath.as_posix
 .. .. automethod:: GitPath.as_uri
 .. .. automethod:: GitPath.is_absolute

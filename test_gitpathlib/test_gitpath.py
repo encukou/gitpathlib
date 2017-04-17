@@ -206,3 +206,41 @@ def test_parent_dotdot(testrepo):
     root = gitpathlib.GitPath(testrepo.path)
     path = root / 'dir' / '..' / 'file'
     assert path.parent == root / 'dir' / '..'
+
+
+def test_name(testrepo):
+    path = gitpathlib.GitPath(testrepo.path) / 'dir'
+    assert path.name == 'dir'
+
+
+def test_name_root(testrepo):
+    path = gitpathlib.GitPath(testrepo.path)
+    assert path.name == ''
+
+
+def test_suffix_and_friends_0(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive')
+    assert path.suffix == ''
+    assert path.suffixes == []
+    assert path.stem == 'archive'
+
+
+def test_suffix_and_friends_1(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive.tar')
+    assert path.suffix == '.tar'
+    assert path.suffixes == ['.tar']
+    assert path.stem == 'archive'
+
+
+def test_suffix_and_friends_2(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive.tar.gz')
+    assert path.suffix == '.gz'
+    assert path.suffixes == ['.tar', '.gz']
+    assert path.stem == 'archive.tar'
+
+
+def test_suffix_and_friends_3(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive.tar.gz.xz')
+    assert path.suffix == '.xz'
+    assert path.suffixes == ['.tar', '.gz', '.xz']
+    assert path.stem == 'archive.tar.gz'

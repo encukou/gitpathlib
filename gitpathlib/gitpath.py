@@ -145,6 +145,54 @@ class GitPath:
         else:
             return (self.parent, *self.parent.parents)
 
+    @property
+    def suffix(self):
+        """The file extension of the final component, if any.
+
+        >>> GitPath('path/to/repo', 'HEAD', 'README.md').suffix
+        '.md'
+        >>> GitPath('path/to/repo', 'HEAD', 'archive.tar.gz').suffix
+        '.gz'
+        >>> GitPath('path/to/repo', 'HEAD').suffix
+        ''
+        """
+        stem, dot, suffix = self.name.rpartition('.')
+        if dot:
+            return dot + suffix
+        else:
+            return ''
+
+    @property
+    def suffixes(self):
+        """A list of the path’s file extensions.
+
+        >>> GitPath('path/to/repo', 'HEAD', 'archive.tar.gz').suffixes
+        ['.tar', '.gz']
+        >>> GitPath('path/to/repo', 'HEAD', 'archive.tar').suffixes
+        ['.tar']
+        >>> GitPath('path/to/repo', 'HEAD', 'archive').suffixes
+        []
+        """
+        parts = self.name.split('.')
+        return ['.' + p for p in parts[1:]]
+
+    @property
+    def stem(self):
+        """The final path component, without its suffix.
+
+        >>> GitPath('path/to/repo', 'HEAD', 'archive.tar.gz').stem
+        'archive.tar'
+        >>> GitPath('path/to/repo', 'HEAD', 'archive.tar').stem
+        'archive'
+        >>> GitPath('path/to/repo', 'HEAD', 'archive').stem
+        'archive'
+        """
+        stem, dot, suffix = self.name.rpartition('.')
+        if dot:
+            return stem
+        else:
+            return self.name
+
     @reify
     def _gp_root(self):
         if self is self.parent:
