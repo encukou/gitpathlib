@@ -352,3 +352,41 @@ def test_relative_to_negative(testrepo, rev, path):
     path2 = gitpathlib.GitPath(testrepo.path, rev, path)
     with pytest.raises(ValueError):
         path1.relative_to(path2)
+
+
+def test_with_name_positive(testrepo, part0):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    path = path.with_name('otherfile')
+    assert path.parts == (part0, 'dir', 'otherfile')
+
+
+def test_with_name_noname(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    with pytest.raises(ValueError):
+        path = path.with_name('otherfile')
+
+
+@pytest.mark.parametrize('badname', ['', 'bad/name', 'bad\0name'])
+def test_with_name_badname(testrepo, badname):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    with pytest.raises(ValueError):
+        path = path.with_name(badname)
+
+
+def test_with_suffix_positive(testrepo, part0):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file.txt')
+    path = path.with_suffix('.py')
+    assert path.parts == (part0, 'dir', 'file.py')
+
+
+def test_with_name_noname(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    with pytest.raises(ValueError):
+        path = path.with_suffix('.py')
+
+
+@pytest.mark.parametrize('badsuffix', ['', 'py', './py', '.\0?', '.'])
+def test_with_name_badsuffix(testrepo, badsuffix):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    with pytest.raises(ValueError):
+        path = path.with_suffix(badsuffix)

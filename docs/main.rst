@@ -124,9 +124,8 @@ Git paths provide the following methods and properties:
 .. automethod:: GitPath.joinpath
 .. automethod:: GitPath.match
 .. automethod:: GitPath.relative_to
-
-.. .. automethod:: GitPath.with_name
-.. .. automethod:: GitPath.with_suffix
+.. automethod:: GitPath.with_name
+.. automethod:: GitPath.with_suffix
 
 Methods and properties that exist only for compatibility with :mod:`pathlib`
 are listed in :ref:`unimplemented`.

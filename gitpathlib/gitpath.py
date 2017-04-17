@@ -196,6 +196,41 @@ class GitPath:
         else:
             return self.name
 
+    def with_name(self, new_name):
+        """Return a new path with the :attr:`name` changed.
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'src/include/spam.h')
+        >>> p.with_name('eggs.h')
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'src', 'include', 'eggs.h')
+
+        If the original path doesn’t have a name, ValueError is raised.
+        """
+        if self is self.parent:
+            raise ValueError('{} has an empty name'.format(self))
+        if not good_part_name(new_name):
+            raise ValueError('Invalid name {!r}'.format(new_name))
+        return self.parent / new_name
+
+    def with_suffix(self, new_suffix):
+        """Return a new path with the :attr:`suffix` changed.
+
+        If the original path doesn’t have a suffix, the new suffix is
+        appended instead.
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'src/spam.h')
+        >>> p.with_suffix('.c')
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'src', 'spam.c')
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'README')
+        >>> p.with_suffix('.txt')
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README.txt')
+        """
+        if self is self.parent:
+            raise ValueError('{} has an empty name'.format(self))
+        if not new_suffix.startswith('.') or not good_part_name(new_suffix[1:]):
+            raise ValueError('Invalid suffix {!r}'.format(new_suffix))
+        return self.parent / (self.stem + new_suffix)
+
     @reify
     def _gp_root(self):
         if self is self.parent:
@@ -353,3 +388,9 @@ def repo_path(repo):
         return repo.path
     else:
         return repo.workdir
+
+def good_part_name(name):
+    if '/' in name or '\0' in name or not name:
+        return False
+    else:
+        return True
