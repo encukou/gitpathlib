@@ -4,6 +4,23 @@ import pathlib
 import pygit2
 
 
+class reify:
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        self.name = self.wrapped.__name__
+        functools.update_wrapper(self, wrapped)
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, obj, owner=None):
+        if obj is None:
+            return self
+        val = self.wrapped(obj)
+        setattr(obj, self.name, val)
+        return val
+
+
 @functools.total_ordering
 class GitPath:
     """
@@ -30,35 +47,59 @@ class GitPath:
     """
     def __new__(cls, repository_path, rev='HEAD', *segments):
         repo = pygit2.Repository(repository_path)
-        parsed_segments = tuple(parse_segments(segments))
         base = repo.revparse_single(rev).peel(pygit2.Tree)
-        objs = [base]
-        for segment in parsed_segments:
-            if segment == '..':
-                objs.pop()
-                if not objs:
-                    raise ValueError('no parent for ".." in path')
-            else:
-                objs.append(repo[objs[-1].peel(pygit2.Tree)[segment].id])
-        return cls._gp_make(repo, base, parsed_segments, objs[-1])
 
-    @classmethod
-    def _gp_make(cls, repo, base, segments, obj):
         self = super(cls, GitPath).__new__(cls)
         self._gp_repo = repo
         self._gp_base = base
-        self._gp_segments = tuple(segments)
-        self._gp_obj = obj
-        return self
+        self.parent = self
+        self.name = ''
+        if segments:
+            return self.joinpath(*segments)
+        else:
+            return self
 
-    @property
+    def _gp_make_child(self, name):
+        child = super(type(self), GitPath).__new__(type(self))
+        child._gp_repo = self._gp_repo
+        child._gp_base = self._gp_base
+        child.parent = self
+        child.name = name
+        return child
+
+    @reify
+    def _gp_obj(self):
+        if self is self.parent:
+            return self._gp_base
+        else:
+            tree = self.parent._gp_obj.peel(pygit2.Tree)
+            entry = tree[self.name]
+            return self._gp_repo[entry.id]
+
+    @reify
     def hex(self):
         return self._gp_obj.hex
 
-    @property
+    @reify
     def parts(self):
-        return (pathlib.Path(self._gp_repo.path), self._gp_base.hex,
-                *self._gp_segments)
+        if self.parent is self:
+            return pathlib.Path(self._gp_repo.path), self._gp_base.hex
+        else:
+            return (*self.parent.parts, self.name)
+
+    @reify
+    def parents(self):
+        if self is self.parent:
+            return ()
+        else:
+            return (self.parent, *self.parent.parents)
+
+    @reify
+    def root(self):
+        if self is self.parent:
+            return self
+        else:
+            return self.parent.root
 
     def __hash__(self):
         return hash((type(self), *self.parts[1:]))
@@ -84,12 +125,21 @@ class GitPath:
             args=args,
         )
 
+    def __truediv__(self, other):
+        return self.joinpath(other)
 
-def parse_segments(segments):
-    for segment in segments:
-        for part in segment.split('/'):
-            if part not in ('', '.'):
-                yield part
+    def joinpath(self, *other):
+        other = pathlib.PurePosixPath(*other)
+        if other.is_absolute():
+            result = self.root
+            parts = other.parts[1:]
+        else:
+            result = self
+            parts = other.parts
+        for name in parts:
+            result = result._gp_make_child(name)
+        return result
+
 
 def repo_path(repo):
     if repo.is_bare:

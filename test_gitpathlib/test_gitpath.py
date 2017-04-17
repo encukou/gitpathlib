@@ -111,3 +111,33 @@ def test_ne_different_roots(testrepo):
     path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
     path2 = gitpathlib.GitPath(testrepo.path, 'HEAD:dir', 'file')
     assert path1 != path2
+
+
+def test_slash(testrepo):
+    path = gitpathlib.GitPath(testrepo.path) / 'dir'
+    assert path.hex == testrepo.revparse_single('HEAD:dir').hex
+
+
+def test_slash_multiple(testrepo):
+    path = gitpathlib.GitPath(testrepo.path) / 'dir' / 'file'
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_slash_combined(testrepo):
+    path = gitpathlib.GitPath(testrepo.path) / 'dir/file'
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_slash_pathlib(testrepo):
+    path = gitpathlib.GitPath(testrepo.path) / Path('dir/file')
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_slash_absolute_str(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir') / '/dir/file'
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_slash_absolute_path(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir') / Path('/dir/file')
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex

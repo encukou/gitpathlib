@@ -6,8 +6,11 @@ Git Paths
 .. testsetup::
 
     import os
+    import pathlib
+
     import tempfile
     import yaml
+
     from gitpathlib import testutil
 
     previous_wd = os.getcwd()
@@ -76,7 +79,22 @@ even if they ultimately refer to the same object.
 False
 
 
+Operators
+---------
 
+The slash operator helps create child paths, similarly to :func:`os.path.join`.
+
+>>> p = GitPath('./repo')
+>>> p / 'dir'
+gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+>>> p / 'dir' / 'file'
+gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
+>>> p / 'dir/file'
+gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
+
+>>> q = pathlib.PurePath('dir/file')
+>>> p / q
+gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
 
 
 
