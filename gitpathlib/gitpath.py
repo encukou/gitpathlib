@@ -130,6 +130,16 @@ class GitPath:
 
     @reify
     def parents(self):
+        """An immutable sequence containing the logical ancestors of the path.
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'subdir', 'file')
+        >>> p.parents[0]
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'subdir')
+        >>> p.parents[1]
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+        >>> p.parents[2]
+        gitpathlib.GitPath('.../repo/', '31b40fb...')
+        """
         if self is self.parent:
             return ()
         else:

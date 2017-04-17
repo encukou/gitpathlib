@@ -180,3 +180,17 @@ def test_anchor(testrepo, tmpdir):
     repodir = os.path.join(str(tmpdir), 'testrepo/')
     tree = testrepo.revparse_single('HEAD:').hex
     assert path.anchor == repodir + ':' + tree
+
+
+def test_parents(testrepo, tmpdir):
+    root = gitpathlib.GitPath(testrepo.path)
+    path = root / 'dir' / 'file'
+    parents = path.parents
+    assert parents == (root / 'dir', root)
+
+
+def test_parents_dotdot(testrepo, tmpdir):
+    root = gitpathlib.GitPath(testrepo.path)
+    path = root / 'dir' / '..' / 'file'
+    parents = path.parents
+    assert parents == (root / 'dir' / '..', root / 'dir', root)
