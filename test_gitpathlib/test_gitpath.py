@@ -1,4 +1,5 @@
 import tempfile
+import os
 from pathlib import Path
 
 import pytest
@@ -21,13 +22,13 @@ def testrepo(tmpdir):
                 file: |
                     Here are the contents of a file
     """)
-    path = str(tmpdir) + 'testrepo'
+    path = os.path.join(str(tmpdir), 'testrepo')
     testutil.make_repo(path, contents)
     return pygit2.Repository(path)
 
 @pytest.fixture
 def cloned_repo(tmpdir, testrepo):
-    path = str(tmpdir) + 'clonedrepo'
+    path = os.path.join(str(tmpdir), 'clonedrepo')
     return pygit2.clone_repository(testrepo.path, path)
 
 
@@ -141,3 +142,24 @@ def test_slash_absolute_str(testrepo):
 def test_slash_absolute_path(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir') / Path('/dir/file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_no_open(testrepo):
+    with pytest.raises(TypeError):
+        open(gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file'))
+
+
+def test_str_and_repr(testrepo, tmpdir):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    repo = os.path.join(str(tmpdir), 'testrepo/')
+    hex = path.root.hex
+    expected = "gitpathlib.GitPath('{repo}', '{hex}', 'dir', 'file')".format(
+        repo=repo, hex=hex)
+    assert str(path) == expected
+    assert repr(path) == expected
+
+
+def test_no_bytes(testrepo):
+    with pytest.raises(TypeError):
+        path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+        bytes(path)

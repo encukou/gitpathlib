@@ -96,6 +96,9 @@ gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
 >>> p / q
 gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
 
+Unlike :class:`Pathlib.Path` objects, ``GitPath`` objects cannot be passed
+to functions like :func:`open`, and their string representation is
+not useful for programmatic use.
 
 
 .. _pathlib: https://docs.python.org/3/library/pathlib.html
