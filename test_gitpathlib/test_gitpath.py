@@ -27,12 +27,13 @@ def testrepo(tmpdir):
 
 def test_head(testrepo):
     path = gitpathlib.GitPath(testrepo.path)
-    assert path.hex == testrepo.head.peel().hex
+    assert path.hex == testrepo.head.peel(pygit2.Tree).hex
 
 
 def test_parent(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD^')
-    assert path.hex == testrepo.head.peel().parents[0].hex
+    parent = testrepo.head.peel(pygit2.Commit).parents[0]
+    assert path.hex == parent.peel(pygit2.Tree).hex
 
 
 def test_components(testrepo):
@@ -42,24 +43,29 @@ def test_components(testrepo):
 
 def test_parts_empty(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD')
-    assert path.parts == (testrepo.path, 'HEAD')
+    tree = testrepo.head.peel(pygit2.Tree).hex
+    assert path.parts == (testrepo.path, tree)
 
 
 def test_parts(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    assert path.parts == (testrepo.path, 'HEAD', 'dir', 'file')
+    tree = testrepo.head.peel(pygit2.Tree).hex
+    assert path.parts == (testrepo.path, tree, 'dir', 'file')
 
 
 def test_parts_slash(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/file')
-    assert path.parts == (testrepo.path, 'HEAD', 'dir', 'file')
+    tree = testrepo.head.peel(pygit2.Tree).hex
+    assert path.parts == (testrepo.path, tree, 'dir', 'file')
 
 
 def test_parts_slashdot(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/./file')
-    assert path.parts == (testrepo.path, 'HEAD', 'dir', 'file')
+    tree = testrepo.head.peel(pygit2.Tree).hex
+    assert path.parts == (testrepo.path, tree, 'dir', 'file')
 
 
 def test_dotdot(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/../dir/file')
-    assert path.parts == (testrepo.path, 'HEAD', 'dir', '..', 'dir', 'file')
+    tree = testrepo.head.peel(pygit2.Tree).hex
+    assert path.parts == (testrepo.path, tree, 'dir', '..', 'dir', 'file')

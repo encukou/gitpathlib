@@ -5,7 +5,7 @@ def make_repo(path, description, bare=True):
     parents = []
     for revision in description:
         tree = make_tree(repo, revision['tree'])
-        signature = pygit2.Signature('Test', 'test@noreply.invalid')
+        signature = pygit2.Signature('Test', 'test@noreply.invalid', time=0, offset=0)
         commit = repo.create_commit(
             'refs/heads/master',
             signature, signature,

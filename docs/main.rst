@@ -1,5 +1,5 @@
 Git Paths
----------
+=========
 
 .. module:: gitpathlib
 
@@ -27,6 +27,13 @@ Git Paths
     testutil.make_repo('path/to/repo', contents, bare=False)
 
 .. autoclass:: GitPath(repository_path, ref='HEAD', *segments)
+
+General properties
+------------------
+
+Git paths are immutable 
+
+
 
 
 
