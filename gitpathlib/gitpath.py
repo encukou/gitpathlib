@@ -1,5 +1,10 @@
+import functools
+import pathlib
+
 import pygit2
 
+
+@functools.total_ordering
 class GitPath:
     """
     A `pathlib`_-style *path flavor* that allows reading from Git repositories.
@@ -11,7 +16,7 @@ class GitPath:
     >>> GitPath('path/to/repo')
     gitpathlib.GitPath('.../path/to/repo/', '31b40fb...')
 
-    A commit ID or a branch (or reference) name can be given as *ref* to open
+    A commit ID or a branch (or reference) name can be given as *rev* to open
     a particular commit (or *tree-ish*).
 
     >>> GitPath('path/to/repo', 'HEAD^')
@@ -23,10 +28,10 @@ class GitPath:
     gitpathlib.GitPath('.../path/to/repo/', '31b40fb...', 'dir', 'file')
 
     """
-    def __new__(cls, repository_path, ref='HEAD', *segments):
+    def __new__(cls, repository_path, rev='HEAD', *segments):
         repo = pygit2.Repository(repository_path)
         parsed_segments = tuple(parse_segments(segments))
-        base = repo.revparse_single(ref).peel(pygit2.Tree)
+        base = repo.revparse_single(rev).peel(pygit2.Tree)
         objs = [base]
         for segment in parsed_segments:
             if segment == '..':
@@ -52,20 +57,33 @@ class GitPath:
 
     @property
     def parts(self):
-        return (repo_path(self._gp_repo), self._gp_base.hex, *self._gp_segments)
+        return (pathlib.Path(self._gp_repo.path), self._gp_base.hex,
+                *self._gp_segments)
 
     def __hash__(self):
-        return hash((type(self), *self.parts))
+        return hash((type(self), *self.parts[1:]))
+
+    def __eq__(self, other):
+        if not isinstance(other, GitPath):
+            return NotImplemented
+        return self.parts[1:] == other.parts[1:]
+
+    def __lt__(self, other):
+        if not isinstance(other, GitPath):
+            return NotImplemented
+        return self.parts[1:] < other.parts[1:]
 
     def __repr__(self):
         if type(self) == GitPath:
             qualname = 'gitpathlib.GitPath'
         else:
             qualname = '{tp.__module__}.{tp.__qualname__}'.format(tp=type(self))
+        args = (repo_path(self._gp_repo), ) + self.parts[1:]
         return '{qualname}{args}'.format(
             qualname=qualname,
-            args=self.parts,
+            args=args,
         )
+
 
 def parse_segments(segments):
     for segment in segments:
