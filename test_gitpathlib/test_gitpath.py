@@ -1,6 +1,6 @@
 import tempfile
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 import pygit2
@@ -320,3 +320,35 @@ def test_match_positive(testrepo, pattern):
 def test_match_negative(testrepo, pattern):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
     assert not path.match(pattern)
+
+
+@pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('dir', 'file'),
+        ('/dir', 'file'),
+        ('/', 'dir/file'),
+        ('', 'dir/file'),
+        ('dir/file', '.'),
+    ]
+)
+def test_relative_to_positive(testrepo, path, expected):
+    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path1.relative_to(path2) == PurePosixPath(expected)
+
+
+@pytest.mark.parametrize(
+    ['rev', 'path'],
+    [
+        ('HEAD', 'dir/file'),
+        ('HEAD:dir', 'file'),
+        ('HEAD', 'diff'),
+        ('HEAD:dir', '.'),
+    ]
+)
+def test_relative_to_negative(testrepo, rev, path):
+    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
+    path2 = gitpathlib.GitPath(testrepo.path, rev, path)
+    with pytest.raises(ValueError):
+        path1.relative_to(path2)

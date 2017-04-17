@@ -320,6 +320,29 @@ class GitPath:
         """
         return self._gp_pureposixpath.match(pattern)
 
+    def relative_to(self, other):
+        """Return a version of this path relative to the other path.
+
+        If it’s impossible, ValueError is raised:
+
+        >>> p = GitPath('./repo', 'HEAD', 'a/b.py')
+        >>> p.relative_to('/')
+        PurePosixPath('a/b.py')
+        >>> p.relative_to('/a')
+        PurePosixPath('b.py')
+        >>> p.relative_to('/README')
+        Traceback (most recent call last):
+        ...
+        ValueError: '/a/b.py' does not start with '/README'
+        """
+        if isinstance(other, GitPath):
+            if self._gp_base.hex != other._gp_base.hex:
+                raise ValueError('Paths have different roots')
+            ppp = other._gp_pureposixpath
+        else:
+            ppp = pathlib.PurePosixPath('/').joinpath(other)
+        return self._gp_pureposixpath.relative_to(ppp)
+
 
 def eq_key(gitpath):
     return (gitpath._gp_base.hex, *gitpath.parts[1:])
