@@ -122,16 +122,14 @@ Git paths provide the following methods and properties:
 .. autoattribute:: GitPath.suffixes
 .. autoattribute:: GitPath.stem
 
-.. .. automethod:: GitPath.as_posix
-.. .. automethod:: GitPath.as_uri
-.. .. automethod:: GitPath.is_absolute
-.. .. automethod:: GitPath.is_reserved
 .. .. automethod:: GitPath.joinpath
 .. .. automethod:: GitPath.match
 .. .. automethod:: GitPath.relative_to
 .. .. automethod:: GitPath.with_name
 .. .. automethod:: GitPath.with_suffix
 
+Methods and properties that exist only for compatibility with :mod:`pathlib`
+are listed in :ref:`unimplemented`.
 
 
 .. _pathlib: https://docs.python.org/3/library/pathlib.html

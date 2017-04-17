@@ -244,3 +244,25 @@ def test_suffix_and_friends_3(testrepo):
     assert path.suffix == '.xz'
     assert path.suffixes == ['.tar', '.gz', '.xz']
     assert path.stem == 'archive.tar.gz'
+
+
+def test_as_posix_not_callable(testrepo):
+    path = gitpathlib.GitPath(testrepo.path)
+    with pytest.raises(TypeError):
+        path.as_posix()
+
+
+def test_as_uri_not_callable(testrepo):
+    path = gitpathlib.GitPath(testrepo.path)
+    with pytest.raises(ValueError):
+        path.as_uri()
+
+
+def test_is_absolute(testrepo):
+    path = gitpathlib.GitPath(testrepo.path)
+    assert path.is_absolute()
+
+
+def test_is_reserved(testrepo):
+    path = gitpathlib.GitPath(testrepo.path)
+    assert not path.is_reserved()

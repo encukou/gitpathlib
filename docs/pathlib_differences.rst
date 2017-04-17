@@ -1,6 +1,8 @@
 Differences from pathlib
 ========================
 
+.. currentmodule:: gitpathlib
+
 Git paths are *not* filesystem paths, and some operations on them do not make
 sense.
 Here is a summary of differences between ``GitObject`` and
@@ -83,3 +85,18 @@ even if they ultimately refer to the same object.
 
 >>> GitPath('./repo', 'HEAD:dir') == GitPath('./repo', 'HEAD', 'dir')
 False
+
+
+.. _unimplemented:
+
+Unimplemented and uninteresting functions
+-----------------------------------------
+
+.. method:: GitPath.as_posix()
+
+    Git paths cannot be meaningfully converted to POSIX paths.
+
+
+.. automethod:: GitPath.as_uri()
+.. automethod:: GitPath.is_absolute()
+.. automethod:: GitPath.is_reserved()

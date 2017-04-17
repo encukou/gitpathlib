@@ -242,6 +242,34 @@ class GitPath:
             result = result._gp_make_child(name)
         return result
 
+    as_posix = NotImplemented
+
+    def as_uri(self):
+        """Raises ValueError.
+
+        Git paths cannot be converted to ``file:`` URIs.
+        """
+        raise ValueError('GitPath cannot be meaningfully converted to an URI')
+
+    def is_absolute(self):
+        """Returns ``True``.
+
+        For relative paths within a repository,
+        use :class:`pathlib.PurePosixPath`.
+
+        There is no “current directory” for Git paths.
+        """
+        return True
+
+    def is_reserved(self):
+        """Returns ``False``.
+
+        While using paths that are reserved on Windows will make a Git
+        repository unusable on that system, Git itself does not reserve any
+        paths.
+        """
+        return False
+
 
 def eq_key(gitpath):
     return (gitpath._gp_base.hex, *gitpath.parts[1:])
