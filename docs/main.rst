@@ -117,8 +117,8 @@ Git paths provide the following methods and properties:
 
 .. autoattribute:: GitPath.drive
 .. autoattribute:: GitPath.root
+.. autoattribute:: GitPath.anchor
 
-.. .. autoattribute:: GitPath.anchor
 .. .. autoattribute:: GitPath.parents
 .. .. autoattribute:: GitPath.parent
 .. .. autoattribute:: GitPath.name

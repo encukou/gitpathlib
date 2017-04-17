@@ -173,3 +173,10 @@ def test_drive(testrepo, tmpdir):
 def test_root(testrepo, tmpdir):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
     assert path.root == testrepo.revparse_single('HEAD:').hex
+
+
+def test_anchor(testrepo, tmpdir):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    repodir = os.path.join(str(tmpdir), 'testrepo/')
+    tree = testrepo.revparse_single('HEAD:').hex
+    assert path.anchor == repodir + ':' + tree

@@ -92,7 +92,7 @@ class GitPath:
         and Git object ID of the path's root.
         """
         if self.parent is self:
-            return '{}:{}'.format(self._gp_repo.path, self._gp_base.hex),
+            return (self.anchor, )
         else:
             return (*self.parent.parts, self.name)
 
@@ -117,6 +117,16 @@ class GitPath:
         '31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
         """
         return self._gp_base.hex
+
+    @reify
+    def anchor(self):
+        """The concatenation of drive and root.
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
+        >>> p.anchor
+        '/.../path/to/repo/.git/:31b40fb...'
+        """
+        return '{}:{}'.format(self._gp_repo.path, self._gp_base.hex)
 
     @reify
     def parents(self):
