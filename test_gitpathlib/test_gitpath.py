@@ -182,15 +182,27 @@ def test_anchor(testrepo, tmpdir):
     assert path.anchor == repodir + ':' + tree
 
 
-def test_parents(testrepo, tmpdir):
+def test_parents(testrepo):
     root = gitpathlib.GitPath(testrepo.path)
     path = root / 'dir' / 'file'
     parents = path.parents
     assert parents == (root / 'dir', root)
 
 
-def test_parents_dotdot(testrepo, tmpdir):
+def test_parents_dotdot(testrepo):
     root = gitpathlib.GitPath(testrepo.path)
     path = root / 'dir' / '..' / 'file'
     parents = path.parents
     assert parents == (root / 'dir' / '..', root / 'dir', root)
+
+
+def test_parent(testrepo):
+    root = gitpathlib.GitPath(testrepo.path)
+    path = root / 'dir'
+    assert path.parent == root
+
+
+def test_parent_dotdot(testrepo):
+    root = gitpathlib.GitPath(testrepo.path)
+    path = root / 'dir' / '..' / 'file'
+    assert path.parent == root / 'dir' / '..'

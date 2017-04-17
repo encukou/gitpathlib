@@ -120,7 +120,36 @@ Git paths provide the following methods and properties:
 .. autoattribute:: GitPath.anchor
 .. autoattribute:: GitPath.parents
 
-.. .. autoattribute:: GitPath.parent
+.. attribute:: GitPath.parent
+
+    The logical parent of the path.
+
+    >>> p = GitPath('./repo', 'HEAD', 'dir', 'file')
+    >>> p.parent
+    gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+
+    You cannot go past an anchor, or empty path:
+
+    >>> p = GitPath('./repo')
+    >>> p
+    gitpathlib.GitPath('.../repo/', '31b40fb...')
+    >>> p.parent
+    gitpathlib.GitPath('.../repo/', '31b40fb...')
+
+    .. note::
+
+        This is a purely lexical operation, hence the following behavior:
+
+        >>> p = GitPath('./repo', 'HEAD', 'dir', '..')
+        >>> p
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', '..')
+        >>> p.parent
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+
+        If you want to walk an arbitrary filesystem path upwards, it is
+        recommended to first call :meth:`GitPath.resolve` so as to resolve
+        symlinks and eliminate ".." components.
+
 .. .. autoattribute:: GitPath.name
 .. .. autoattribute:: GitPath.suffix
 .. .. autoattribute:: GitPath.suffixes
