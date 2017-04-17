@@ -110,5 +110,30 @@ property:
 .. autoattribute:: GitPath.parts
 
 
+Methods and properties
+----------------------
+
+Git paths provide the following methods and properties:
+
+.. autoattribute:: GitPath.drive
+.. .. autoattribute:: GitPath.root
+.. .. autoattribute:: GitPath.anchor
+.. .. autoattribute:: GitPath.parents
+.. .. autoattribute:: GitPath.parent
+.. .. autoattribute:: GitPath.name
+.. .. autoattribute:: GitPath.suffix
+.. .. autoattribute:: GitPath.suffixes
+.. .. autoattribute:: GitPath.stem
+.. .. automethod:: GitPath.as_posix
+.. .. automethod:: GitPath.as_uri
+.. .. automethod:: GitPath.is_absolute
+.. .. automethod:: GitPath.is_reserved
+.. .. automethod:: GitPath.joinpath
+.. .. automethod:: GitPath.match
+.. .. automethod:: GitPath.relative_to
+.. .. automethod:: GitPath.with_name
+.. .. automethod:: GitPath.with_suffix
+
+
 
 .. _pathlib: https://docs.python.org/3/library/pathlib.html

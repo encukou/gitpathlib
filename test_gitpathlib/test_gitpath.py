@@ -163,3 +163,8 @@ def test_no_bytes(testrepo):
     with pytest.raises(TypeError):
         path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
         bytes(path)
+
+
+def test_drive(testrepo, tmpdir):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    assert path.drive == os.path.join(str(tmpdir), 'testrepo/')

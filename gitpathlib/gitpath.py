@@ -97,6 +97,18 @@ class GitPath:
             return (*self.parent.parts, self.name)
 
     @reify
+    def drive(self):
+        """A string representing the repository location.
+
+        Note that this is not the same as the repository's working directory.
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
+        >>> p.drive
+        '/.../path/to/repo/.git/'
+        """
+        return self._gp_repo.path
+
+    @reify
     def parents(self):
         if self is self.parent:
             return ()
