@@ -101,4 +101,14 @@ to functions like :func:`open`, and their string representation is
 not useful for programmatic use.
 
 
+Accessing individual parts
+--------------------------
+
+To access the individual “parts” (components) of a path, use the following
+property:
+
+.. autoattribute:: GitPath.parts
+
+
+
 .. _pathlib: https://docs.python.org/3/library/pathlib.html

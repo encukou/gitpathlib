@@ -27,6 +27,11 @@ def testrepo(tmpdir):
     return pygit2.Repository(path)
 
 @pytest.fixture
+def part0(testrepo, tmpdir):
+    tree = testrepo.head.peel(pygit2.Tree).hex
+    return os.path.join(str(tmpdir), 'testrepo') + '/:' + tree
+
+@pytest.fixture
 def cloned_repo(tmpdir, testrepo):
     path = os.path.join(str(tmpdir), 'clonedrepo')
     return pygit2.clone_repository(testrepo.path, path)
@@ -48,34 +53,29 @@ def test_components(testrepo):
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_parts_empty(testrepo):
+def test_parts_empty(testrepo, part0):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD')
-    tree = testrepo.head.peel(pygit2.Tree).hex
-    assert path.parts == (Path(testrepo.path), tree)
+    assert path.parts == (part0, )
 
 
-def test_parts(testrepo):
+def test_parts(testrepo, part0):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    tree = testrepo.head.peel(pygit2.Tree).hex
-    assert path.parts == (Path(testrepo.path), tree, 'dir', 'file')
+    assert path.parts == (part0, 'dir', 'file')
 
 
-def test_parts_slash(testrepo):
+def test_parts_slash(testrepo, part0):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/file')
-    tree = testrepo.head.peel(pygit2.Tree).hex
-    assert path.parts == (Path(testrepo.path), tree, 'dir', 'file')
+    assert path.parts == (part0, 'dir', 'file')
 
 
-def test_parts_slashdot(testrepo):
+def test_parts_slashdot(testrepo, part0):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/./file')
-    tree = testrepo.head.peel(pygit2.Tree).hex
-    assert path.parts == (Path(testrepo.path), tree, 'dir', 'file')
+    assert path.parts == (part0, 'dir', 'file')
 
 
-def test_dotdot(testrepo):
+def test_dotdot(testrepo, part0):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/../dir/file')
-    tree = testrepo.head.peel(pygit2.Tree).hex
-    assert path.parts == (Path(testrepo.path), tree, 'dir', '..', 'dir', 'file')
+    assert path.parts == (part0, 'dir', '..', 'dir', 'file')
 
 
 def test_hash(testrepo):

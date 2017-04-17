@@ -82,8 +82,17 @@ class GitPath:
 
     @reify
     def parts(self):
+        """A tuple giving access to the path’s various components
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
+        >>> p.parts
+        ('.../path/to/repo/.git/:31b40fb...', 'dir', 'file')
+
+        (Note that the first part combines the repository location
+        and Git object ID of the path's root.
+        """
         if self.parent is self:
-            return pathlib.Path(self._gp_repo.path), self._gp_base.hex
+            return '{}:{}'.format(self._gp_repo.path, self._gp_base.hex),
         else:
             return (*self.parent.parts, self.name)
 
@@ -102,24 +111,24 @@ class GitPath:
             return self.parent.root
 
     def __hash__(self):
-        return hash((type(self), *self.parts[1:]))
+        return hash((GitPath, eq_key(self)))
 
     def __eq__(self, other):
         if not isinstance(other, GitPath):
             return NotImplemented
-        return self.parts[1:] == other.parts[1:]
+        return eq_key(self) == eq_key(other)
 
     def __lt__(self, other):
         if not isinstance(other, GitPath):
             return NotImplemented
-        return self.parts[1:] < other.parts[1:]
+        return eq_key(self) < eq_key(other)
 
     def __repr__(self):
         if type(self) == GitPath:
             qualname = 'gitpathlib.GitPath'
         else:
             qualname = '{tp.__module__}.{tp.__qualname__}'.format(tp=type(self))
-        args = (repo_path(self._gp_repo), ) + self.parts[1:]
+        args = (repo_path(self._gp_repo), self._gp_base.hex) + self.parts[1:]
         return '{qualname}{args}'.format(
             qualname=qualname,
             args=args,
@@ -139,6 +148,10 @@ class GitPath:
         for name in parts:
             result = result._gp_make_child(name)
         return result
+
+
+def eq_key(gitpath):
+    return (gitpath._gp_base.hex, *gitpath.parts[1:])
 
 
 def repo_path(repo):
