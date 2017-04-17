@@ -22,6 +22,7 @@ Here is a summary of differences between ``GitObject`` and
     cleanup()
 
 
+.. _the-root:
 .. _root-and-equivalence:
 
 The root

@@ -296,3 +296,27 @@ def test_joinpath_absolute_str(testrepo):
 def test_joinpath_absolute_path(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir').joinpath(Path('/dir/file'))
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+@pytest.mark.parametrize(
+    'pattern',
+    [
+        'file', '*le', 'dir/*le', '*',
+        '/dir/file', '/dir/*le', '*/file', '/dir/file/', '*/*', '/*/*'
+    ]
+)
+def test_match_positive(testrepo, pattern):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    assert path.match(pattern)
+
+
+@pytest.mark.parametrize(
+    'pattern',
+    [
+        'bogus', 'dir', 'dir/',
+        '/dir/fi', '/*/*/*',
+    ]
+)
+def test_match_negative(testrepo, pattern):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    assert not path.match(pattern)

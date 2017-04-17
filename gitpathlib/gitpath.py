@@ -203,6 +203,10 @@ class GitPath:
         else:
             return self.parent._gp_root
 
+    @reify
+    def _gp_pureposixpath(self):
+        return pathlib.PurePosixPath('/', *self.parts[1:])
+
     def __hash__(self):
         return hash((GitPath, eq_key(self)))
 
@@ -284,6 +288,37 @@ class GitPath:
         paths.
         """
         return False
+
+    def match(self, pattern):
+        """Match this path against the provided glob-style pattern.
+
+        Return True if matching is successful, False otherwise.
+
+        :ref:`the-root` is never taken into consideration when matching.
+
+        If pattern is relative, matching is done from the right:
+
+        >>> GitPath('./repo', 'HEAD', 'a/b.py').match('*.py')
+        True
+        >>> GitPath('./repo', 'HEAD', 'a/b/c.py').match('b/*.py')
+        True
+        >>> GitPath('./repo', 'HEAD', 'a/b/c.py').match('a/*.py')
+        False
+
+        If pattern is absolute, the whole path must match:
+
+        >>> GitPath('./repo', 'HEAD', 'a.py').match('/*.py')
+        True
+        >>> GitPath('./repo', 'HEAD', 'a/b.py').match('/*.py')
+        False
+
+        The matching is purely lexical. In particular, it does not distinguish
+        between files and directories:
+
+        >>> GitPath('./repo', 'HEAD', 'README').match('/README/')
+        True
+        """
+        return self._gp_pureposixpath.match(pattern)
 
 
 def eq_key(gitpath):
