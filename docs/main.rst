@@ -121,8 +121,8 @@ Git paths provide the following methods and properties:
 .. autoattribute:: GitPath.suffix
 .. autoattribute:: GitPath.suffixes
 .. autoattribute:: GitPath.stem
+.. automethod:: GitPath.joinpath
 
-.. .. automethod:: GitPath.joinpath
 .. .. automethod:: GitPath.match
 .. .. automethod:: GitPath.relative_to
 .. .. automethod:: GitPath.with_name

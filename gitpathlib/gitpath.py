@@ -231,6 +231,21 @@ class GitPath:
         return self.joinpath(other)
 
     def joinpath(self, *other):
+        """Combines the path with each of the other arguments in turn.
+
+        >>> GitPath('./repo').joinpath('README')
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README')
+        >>> GitPath('./repo').joinpath(pathlib.PurePosixPath('README'))
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README')
+        >>> GitPath('./repo').joinpath('tests', 'runtests.sh')
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'tests', 'runtests.sh')
+
+        If an argument in *other* is an absolute path, it resets the path
+        to the GitPath's root (mimicking :func:`os.path.join()`‘s behaviour).
+
+        >>> GitPath('./repo').joinpath('tests', '/README')
+        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README')
+        """
         other = pathlib.PurePosixPath(*other)
         if other.is_absolute():
             result = self._gp_root

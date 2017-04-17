@@ -266,3 +266,33 @@ def test_is_absolute(testrepo):
 def test_is_reserved(testrepo):
     path = gitpathlib.GitPath(testrepo.path)
     assert not path.is_reserved()
+
+
+def test_joinpath(testrepo):
+    path = gitpathlib.GitPath(testrepo.path).joinpath('dir')
+    assert path.hex == testrepo.revparse_single('HEAD:dir').hex
+
+
+def test_joinpath_multiple(testrepo):
+    path = gitpathlib.GitPath(testrepo.path).joinpath('dir', 'file')
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_joinpath_combined(testrepo):
+    path = gitpathlib.GitPath(testrepo.path).joinpath('dir/file')
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_joinpath_pathlib(testrepo):
+    path = gitpathlib.GitPath(testrepo.path).joinpath(Path('dir/file'))
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_joinpath_absolute_str(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir').joinpath('/dir/file')
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+
+
+def test_joinpath_absolute_path(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir').joinpath(Path('/dir/file'))
+    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
