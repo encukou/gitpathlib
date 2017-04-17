@@ -109,6 +109,16 @@ class GitPath:
         return self._gp_repo.path
 
     @reify
+    def root(self):
+        """A hex ID of the path's root.
+
+        >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
+        >>> p.root
+        '31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
+        """
+        return self._gp_base.hex
+
+    @reify
     def parents(self):
         if self is self.parent:
             return ()
@@ -116,11 +126,11 @@ class GitPath:
             return (self.parent, *self.parent.parents)
 
     @reify
-    def root(self):
+    def _gp_root(self):
         if self is self.parent:
             return self
         else:
-            return self.parent.root
+            return self.parent._gp_root
 
     def __hash__(self):
         return hash((GitPath, eq_key(self)))
@@ -152,7 +162,7 @@ class GitPath:
     def joinpath(self, *other):
         other = pathlib.PurePosixPath(*other)
         if other.is_absolute():
-            result = self.root
+            result = self._gp_root
             parts = other.parts[1:]
         else:
             result = self

@@ -152,7 +152,7 @@ def test_no_open(testrepo):
 def test_str_and_repr(testrepo, tmpdir):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
     repo = os.path.join(str(tmpdir), 'testrepo/')
-    hex = path.root.hex
+    hex = testrepo.revparse_single('HEAD:').hex
     expected = "gitpathlib.GitPath('{repo}', '{hex}', 'dir', 'file')".format(
         repo=repo, hex=hex)
     assert str(path) == expected
@@ -168,3 +168,8 @@ def test_no_bytes(testrepo):
 def test_drive(testrepo, tmpdir):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
     assert path.drive == os.path.join(str(tmpdir), 'testrepo/')
+
+
+def test_root(testrepo, tmpdir):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+    assert path.root == testrepo.revparse_single('HEAD:').hex
