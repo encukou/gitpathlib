@@ -35,6 +35,9 @@ class GitPath:
 
     A commit ID or a branch (or reference) name can be given as *rev* to open
     a particular commit (or *tree-ish*).
+    A large subset of the *extended SHA-1 syntax* accepted by
+    `git rev-parse <https://git-scm.com/docs/git-rev-parse#_specifying_revisions>`_
+    is accepted for *rev*.
 
     >>> GitPath('path/to/repo', 'HEAD^')
     gitpathlib.GitPath('.../path/to/repo/', '66c3381...')

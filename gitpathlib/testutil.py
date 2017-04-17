@@ -1,3 +1,7 @@
+import os
+import tempfile
+
+import yaml
 import pygit2
 
 def make_repo(path, description, bare=True):
@@ -26,3 +30,30 @@ def make_tree(repo, description):
             attr = pygit2.GIT_FILEMODE_TREE
         builder.insert(name, item, attr)
     return builder.write()
+
+
+
+def setup_doctests():
+    previous_wd = os.getcwd()
+    temp_dir = tempfile.TemporaryDirectory()
+    os.chdir(temp_dir.name)
+
+    contents = yaml.safe_load("""
+        - tree:
+            dir:
+                file: |
+                    Here are old contents of a file
+        - tree:
+            dir:
+                file: |
+                    Here are the contents of a file
+    """)
+    make_repo('path/to/repo', contents, bare=False)
+    make_repo('repo', contents, bare=False)
+    make_repo('cloned_repo', contents, bare=False)
+
+    def cleanup():
+        temp_dir
+        os.chdir(previous_wd)
+
+    return cleanup

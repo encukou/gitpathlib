@@ -7,6 +7,7 @@ Detailed Documentation
     :maxdepth: 2
 
     main
+    pathlib_differences
 
 Indices and tables
 ==================
