@@ -112,3 +112,20 @@ Unimplemented and uninteresting functions
     Return a :class:`pathlib.Path` object representing the user's home
     directory.
     (This has nothing to do with Git.)
+
+Modification functions
+......................
+
+Git trees are immutable, so the following methods only
+raise :exc:`ReadOnlyError`:
+
+.. method:: GitPath.chmod()
+.. method:: GitPath.mkdir()
+.. method:: GitPath.rename()
+.. method:: GitPath.replace()
+.. method:: GitPath.rmdir()
+.. method:: GitPath.symlink_to()
+.. method:: GitPath.touch()
+.. method:: GitPath.unlink()
+.. method:: GitPath.write_bytes()
+.. method:: GitPath.write_text()

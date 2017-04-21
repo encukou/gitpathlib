@@ -147,3 +147,12 @@ Methods and properties that exist only for compatibility with :mod:`pathlib`
 are listed in :ref:`unimplemented`.
 
 .. _pathlib: https://docs.python.org/3/library/pathlib.html
+
+
+Exceptions
+----------
+
+The following custom exceptions are specific to gitpathlib:
+
+.. autoexception:: GitPathError
+.. autoexception:: ReadOnlyError

@@ -4,6 +4,21 @@ import pathlib
 from .util import reify
 
 
+class GitPathError(Exception):
+    """Invalid operation on a Git path
+
+    Base for all gitpathlib exceptions.
+    """
+
+class ReadOnlyError(GitPathError, PermissionError):
+    """Attempt to modify an immutable Git tree"""
+
+
+def _raise_readonly(self, *args, **kwargs):
+    """Raises ReadOnlyError."""
+    raise ReadOnlyError('Cannot modify a GitPath')
+
+
 @functools.total_ordering
 class BaseGitPath:
     """
@@ -372,6 +387,17 @@ class BaseGitPath:
         """
         raise NotImplementedError(
             'GitPathBase.stat must be overridden in subclass')
+
+    chmod = _raise_readonly
+    mkdir = _raise_readonly
+    rename = _raise_readonly
+    replace = _raise_readonly
+    rmdir = _raise_readonly
+    symlink_to = _raise_readonly
+    touch = _raise_readonly
+    unlink = _raise_readonly
+    write_bytes = _raise_readonly
+    write_text = _raise_readonly
 
 
 def eq_key(gitpath):

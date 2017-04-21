@@ -429,3 +429,21 @@ def test_stat_root(testrepo, path, mode, size, g_type):
     assert stat.st_atime == stat[7] == 0
     assert stat.st_mtime == stat[8] == 0
     assert stat.st_ctime == stat[9] == 0
+
+
+
+@pytest.mark.parametrize(
+    'meth_name',
+    ['chmod', 'mkdir', 'rename', 'replace', 'rmdir', 'symlink_to', 'touch',
+     'unlink', 'write_bytes', 'write_text'])
+def test_mutate(testrepo, meth_name):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    meth = getattr(path, meth_name)
+    with pytest.raises(PermissionError):
+        meth()
+    with pytest.raises(PermissionError):
+        meth(0)
+    with pytest.raises(PermissionError):
+        meth('/foo')
+    with pytest.raises(PermissionError):
+        meth(b'foo')
