@@ -348,6 +348,31 @@ class BaseGitPath:
             ppp = pathlib.PurePosixPath('/').joinpath(other)
         return self._gp_pureposixpath.relative_to(ppp)
 
+    def stat(self):
+        """Return information about this path (similarly to os.stat()).
+
+        Not all members of the returned structure convey useful information.
+        Here is a summary:
+
+        : st_mode: Type and mode of the file
+        : st_ino: The hash of the object, as an integer
+        : st_dev: -1
+        : st_nlink: 1
+        : st_uid: 0
+        : st_gid: 0
+        : st_size:
+            Size of a blob (file) in bytes,
+            or number of entries in a tree (directory)
+
+        : st_atime: 0
+        : st_mtime: 0
+        : st_ctime: 0
+
+        Note in particular that timestamps are always zero.
+        """
+        raise NotImplementedError(
+            'GitPathBase.stat must be overridden in subclass')
+
 
 def eq_key(gitpath):
     return (gitpath.root, *gitpath.parts[1:])

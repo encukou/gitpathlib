@@ -21,6 +21,8 @@ def testrepo(tmpdir):
             dir:
                 file: |
                     Here are the contents of a file
+            link: [link, dir/file]
+            executable: [executable, '#!/bin/sh']
     """)
     path = os.path.join(str(tmpdir), 'testrepo')
     testutil.make_repo(path, contents)
@@ -400,3 +402,30 @@ def test_cwd(testrepo):
 def test_home(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD')
     assert path.home() == Path.home()
+
+
+@pytest.mark.parametrize(
+    ['path', 'mode', 'size', 'g_type'],
+    [
+        ('/', 0o40000, 3, 'tree'),
+        ('/dir', 0o40000, 1, 'tree'),
+        ('/dir/file', 0o100644, 32, 'blob'),
+        ('/link', 0o120000, 8, 'blob'),
+        ('/executable', 0o100755, 9, 'blob'),
+    ]
+)
+def test_stat_root(testrepo, path, mode, size, g_type):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    stat = path.stat()
+    print(oct(stat.st_mode))
+    assert stat.st_mode == stat[0] == mode
+    assert stat.st_ino == stat[1]
+    assert stat.st_ino.to_bytes(20, 'little') == testrepo[path.hex].id.raw
+    assert stat.st_dev == stat[2] == -1
+    assert stat.st_nlink == stat[3] == 1
+    assert stat.st_uid == stat[4] == 0
+    assert stat.st_gid == stat[5] == 0
+    assert stat.st_size == stat[6] == size
+    assert stat.st_atime == stat[7] == 0
+    assert stat.st_mtime == stat[8] == 0
+    assert stat.st_ctime == stat[9] == 0

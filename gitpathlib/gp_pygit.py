@@ -1,3 +1,4 @@
+import os
 import functools
 import pathlib
 
@@ -6,6 +7,12 @@ import pygit2
 from .gp_base import BaseGitPath
 from .util import reify, inherit_docstring
 
+GIT_TYPES = {
+    pygit2.GIT_OBJ_COMMIT: 'commit',
+    pygit2.GIT_OBJ_TREE: 'tree',
+    pygit2.GIT_OBJ_BLOB: 'blob',
+    pygit2.GIT_OBJ_TAG: 'tag',
+}
 
 @functools.total_ordering
 class PygitPath(BaseGitPath):
@@ -27,12 +34,54 @@ class PygitPath(BaseGitPath):
         if self is self.parent:
             return self._gp_base
         else:
+            return self._gp_repo[self._gp_entry.id]
+
+
+    @reify
+    def _gp_entry(self):
+        if self is self.parent:
+            return None
+        else:
             tree = self.parent._gp_obj.peel(pygit2.Tree)
-            entry = tree[self.name]
-            return self._gp_repo[entry.id]
+            return tree[self.name]
 
 
     @reify
     @inherit_docstring(BaseGitPath)
     def hex(self):
         return self._gp_obj.hex
+
+
+    @inherit_docstring(BaseGitPath)
+    def stat(self):
+        git_type = GIT_TYPES[self._gp_obj.type]
+        if self is self.parent:
+            st_mode = pygit2.GIT_FILEMODE_TREE
+        else:
+            st_mode = self._gp_entry.filemode
+        st_ino = int.from_bytes(self._gp_obj.id.raw, 'little')
+        st_dev = -1
+        st_nlink = 1
+        st_uid = 0
+        st_gid = 0
+        if git_type == 'blob':
+            st_size = self._gp_obj.size
+        elif git_type == 'tree':
+            st_size = len(self._gp_obj)
+        else:
+            st_size = 0
+        st_atime = 0
+        st_mtime = 0
+        st_ctime = 0
+        return os.stat_result([
+            st_mode,
+            st_ino,
+            st_dev,
+            st_nlink,
+            st_uid,
+            st_gid,
+            st_size,
+            st_atime,
+            st_mtime,
+            st_ctime,
+        ])

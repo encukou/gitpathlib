@@ -68,10 +68,11 @@ property:
 .. autoattribute:: GitPath.parts
 
 
-Methods and properties
-----------------------
+Path manipulation
+-----------------
 
-Git paths provide the following methods and properties:
+Git paths provide the following methods and properties for manipulating
+the path lexically:
 
 .. autoattribute:: GitPath.drive
 .. autoattribute:: GitPath.root
@@ -132,5 +133,17 @@ Git paths provide the following methods and properties:
 Methods and properties that exist only for compatibility with :mod:`pathlib`
 are listed in :ref:`unimplemented`.
 
+
+
+Object access
+-------------
+
+Git paths provide the following methods and properties for accessing the
+repository information:
+
+.. automethod:: GitPath.stat
+
+Methods and properties that exist only for compatibility with :mod:`pathlib`
+are listed in :ref:`unimplemented`.
 
 .. _pathlib: https://docs.python.org/3/library/pathlib.html

@@ -25,6 +25,15 @@ def make_tree(repo, description):
         if isinstance(value, str):
             item = repo.create_blob(value)
             attr = pygit2.GIT_FILEMODE_BLOB
+        elif isinstance(value, list):
+            if value[0] == 'link':
+                item = repo.create_blob(value[1])
+                attr = pygit2.GIT_FILEMODE_LINK
+            elif value[0] == 'executable':
+                item = repo.create_blob(value[1])
+                attr = pygit2.GIT_FILEMODE_BLOB_EXECUTABLE
+            else:
+                raise ValueError(value[0])
         else:
             item = make_tree(repo, value)
             attr = pygit2.GIT_FILEMODE_TREE
