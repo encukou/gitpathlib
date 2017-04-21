@@ -7,6 +7,8 @@ Git Paths
 
     import pathlib
 
+    from gitpathlib import GitPath
+
     from gitpathlib import testutil
     cleanup = testutil.setup_doctests()
 
@@ -42,15 +44,15 @@ The slash operator helps create child paths, similarly to :func:`os.path.join`.
 
 >>> p = GitPath('./repo')
 >>> p / 'dir'
-gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+gitpathlib.GitPath('.../repo', '31b40fb...', 'dir')
 >>> p / 'dir' / 'file'
-gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
+gitpathlib.GitPath('.../repo', '31b40fb...', 'dir', 'file')
 >>> p / 'dir/file'
-gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
+gitpathlib.GitPath('.../repo', '31b40fb...', 'dir', 'file')
 
 >>> q = pathlib.PurePath('dir/file')
 >>> p / q
-gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
+gitpathlib.GitPath('.../repo', '31b40fb...', 'dir', 'file')
 
 Unlike :class:`Pathlib.Path` objects, ``GitPath`` objects cannot be passed
 to functions like :func:`open`, and their string representation is
@@ -82,15 +84,15 @@ Git paths provide the following methods and properties:
 
     >>> p = GitPath('./repo', 'HEAD', 'dir', 'file')
     >>> p.parent
-    gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+    gitpathlib.GitPath('.../repo', '31b40fb...', 'dir')
 
     You cannot go past an anchor, or empty path:
 
     >>> p = GitPath('./repo')
     >>> p
-    gitpathlib.GitPath('.../repo/', '31b40fb...')
+    gitpathlib.GitPath('.../repo', '31b40fb...')
     >>> p.parent
-    gitpathlib.GitPath('.../repo/', '31b40fb...')
+    gitpathlib.GitPath('.../repo', '31b40fb...')
 
     .. note::
 
@@ -98,9 +100,9 @@ Git paths provide the following methods and properties:
 
         >>> p = GitPath('./repo', 'HEAD', 'dir', '..')
         >>> p
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', '..')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'dir', '..')
         >>> p.parent
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'dir')
 
         If you want to walk an arbitrary filesystem path upwards, it is
         recommended to first call :meth:`GitPath.resolve` so as to resolve

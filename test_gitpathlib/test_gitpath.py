@@ -29,7 +29,7 @@ def testrepo(tmpdir):
 @pytest.fixture
 def part0(testrepo, tmpdir):
     tree = testrepo.head.peel(pygit2.Tree).hex
-    return os.path.join(str(tmpdir), 'testrepo') + '/:' + tree
+    return os.path.join(str(tmpdir), 'testrepo') + ':' + tree
 
 @pytest.fixture
 def cloned_repo(tmpdir, testrepo):
@@ -151,7 +151,7 @@ def test_no_open(testrepo):
 
 def test_str_and_repr(testrepo, tmpdir):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    repo = os.path.join(str(tmpdir), 'testrepo/')
+    repo = os.path.join(str(tmpdir), 'testrepo')
     hex = testrepo.revparse_single('HEAD:').hex
     expected = "gitpathlib.GitPath('{repo}', '{hex}', 'dir', 'file')".format(
         repo=repo, hex=hex)
@@ -167,7 +167,7 @@ def test_no_bytes(testrepo):
 
 def test_drive(testrepo, tmpdir):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    assert path.drive == os.path.join(str(tmpdir), 'testrepo/')
+    assert path.drive == os.path.join(str(tmpdir), 'testrepo')
 
 
 def test_root(testrepo, tmpdir):
@@ -177,7 +177,7 @@ def test_root(testrepo, tmpdir):
 
 def test_anchor(testrepo, tmpdir):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    repodir = os.path.join(str(tmpdir), 'testrepo/')
+    repodir = os.path.join(str(tmpdir), 'testrepo')
     tree = testrepo.revparse_single('HEAD:').hex
     assert path.anchor == repodir + ':' + tree
 

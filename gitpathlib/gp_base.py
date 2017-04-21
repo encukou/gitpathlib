@@ -1,28 +1,11 @@
 import functools
 import pathlib
 
-import pygit2
-
-
-class reify:
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
-        self.name = self.wrapped.__name__
-        functools.update_wrapper(self, wrapped)
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, obj, owner=None):
-        if obj is None:
-            return self
-        val = self.wrapped(obj)
-        setattr(obj, self.name, val)
-        return val
+from .util import reify
 
 
 @functools.total_ordering
-class GitPath:
+class BaseGitPath:
     """
     A `pathlib`_-style *path flavor* that allows reading from Git repositories.
 
@@ -31,7 +14,7 @@ class GitPath:
 
     >>> from gitpathlib import GitPath
     >>> GitPath('path/to/repo')
-    gitpathlib.GitPath('.../path/to/repo/', '31b40fb...')
+    gitpathlib.GitPath('.../path/to/repo', '31b40fb...')
 
     A commit ID or a branch (or reference) name can be given as *rev* to open
     a particular commit (or *tree-ish*).
@@ -40,21 +23,18 @@ class GitPath:
     is accepted for *rev*.
 
     >>> GitPath('path/to/repo', 'HEAD^')
-    gitpathlib.GitPath('.../path/to/repo/', '66c3381...')
+    gitpathlib.GitPath('.../path/to/repo', '66c3381...')
 
     Additional path segments will select a given file.
 
     >>> GitPath('path/to/repo', 'HEAD', 'dir/file')
-    gitpathlib.GitPath('.../path/to/repo/', '31b40fb...', 'dir', 'file')
+    gitpathlib.GitPath('.../path/to/repo', '31b40fb...', 'dir', 'file')
 
     """
     def __new__(cls, repository_path, rev='HEAD', *segments):
-        repo = pygit2.Repository(repository_path)
-        base = repo.revparse_single(rev).peel(pygit2.Tree)
-
-        self = super(cls, GitPath).__new__(cls)
-        self._gp_repo = repo
-        self._gp_base = base
+        self = super(BaseGitPath, cls).__new__(cls)
+        self.drive = str(pathlib.Path(repository_path).resolve())
+        self._gp_init(repository_path, rev)
         self.parent = self
         self.name = ''
         if segments:
@@ -63,25 +43,16 @@ class GitPath:
             return self
 
     def _gp_make_child(self, name):
-        child = super(type(self), GitPath).__new__(type(self))
-        child._gp_repo = self._gp_repo
-        child._gp_base = self._gp_base
+        child = super(BaseGitPath, type(self)).__new__(type(self))
         child.parent = self
+        child.drive = self.drive
         child.name = name
         return child
 
-    @reify
-    def _gp_obj(self):
-        if self is self.parent:
-            return self._gp_base
-        else:
-            tree = self.parent._gp_obj.peel(pygit2.Tree)
-            entry = tree[self.name]
-            return self._gp_repo[entry.id]
-
-    @reify
+    @property
     def hex(self):
-        return self._gp_obj.hex
+        raise NotImplementedError(
+            'GitPathBase.hex must be overridden in a subclass')
 
     @reify
     def parts(self):
@@ -89,7 +60,7 @@ class GitPath:
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
         >>> p.parts
-        ('.../path/to/repo/.git/:31b40fb...', 'dir', 'file')
+        ('.../path/to/repo:31b40fb...', 'dir', 'file')
 
         (Note that the first part combines the repository location
         and Git object ID of the path's root.
@@ -107,9 +78,9 @@ class GitPath:
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
         >>> p.drive
-        '/.../path/to/repo/.git/'
+        '/.../path/to/repo'
         """
-        return self._gp_repo.path
+        raise NotImplementedError('GitPathBase.drive should be set in __new__')
 
     @reify
     def root(self):
@@ -119,7 +90,7 @@ class GitPath:
         >>> p.root
         '31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
         """
-        return self._gp_base.hex
+        return self._gp_root.hex
 
     @reify
     def anchor(self):
@@ -127,9 +98,9 @@ class GitPath:
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'file')
         >>> p.anchor
-        '/.../path/to/repo/.git/:31b40fb...'
+        '/.../path/to/repo:31b40fb...'
         """
-        return '{}:{}'.format(self._gp_repo.path, self._gp_base.hex)
+        return '{}:{}'.format(self.drive, self.root)
 
     @reify
     def parents(self):
@@ -137,11 +108,11 @@ class GitPath:
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'dir', 'subdir', 'file')
         >>> p.parents[0]
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'subdir')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'dir', 'subdir')
         >>> p.parents[1]
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'dir')
         >>> p.parents[2]
-        gitpathlib.GitPath('.../repo/', '31b40fb...')
+        gitpathlib.GitPath('.../repo', '31b40fb...')
         """
         if self is self.parent:
             return ()
@@ -201,7 +172,7 @@ class GitPath:
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'src/include/spam.h')
         >>> p.with_name('eggs.h')
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'src', 'include', 'eggs.h')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'src', 'include', 'eggs.h')
 
         If the original path doesn’t have a name, ValueError is raised.
         """
@@ -219,11 +190,11 @@ class GitPath:
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'src/spam.h')
         >>> p.with_suffix('.c')
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'src', 'spam.c')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'src', 'spam.c')
 
         >>> p = GitPath('path/to/repo', 'HEAD', 'README')
         >>> p.with_suffix('.txt')
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README.txt')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'README.txt')
         """
         if self is self.parent:
             raise ValueError('{} has an empty name'.format(self))
@@ -243,24 +214,21 @@ class GitPath:
         return pathlib.PurePosixPath('/', *self.parts[1:])
 
     def __hash__(self):
-        return hash((GitPath, eq_key(self)))
+        return hash((BaseGitPath, eq_key(self)))
 
     def __eq__(self, other):
-        if not isinstance(other, GitPath):
+        if not isinstance(other, BaseGitPath):
             return NotImplemented
         return eq_key(self) == eq_key(other)
 
     def __lt__(self, other):
-        if not isinstance(other, GitPath):
+        if not isinstance(other, BaseGitPath):
             return NotImplemented
         return eq_key(self) < eq_key(other)
 
     def __repr__(self):
-        if type(self) == GitPath:
-            qualname = 'gitpathlib.GitPath'
-        else:
-            qualname = '{tp.__module__}.{tp.__qualname__}'.format(tp=type(self))
-        args = (repo_path(self._gp_repo), self._gp_base.hex) + self.parts[1:]
+        qualname = '{tp.__module__}.{tp.__qualname__}'.format(tp=type(self))
+        args = (self.drive, self.root) + self.parts[1:]
         return '{qualname}{args}'.format(
             qualname=qualname,
             args=args,
@@ -273,17 +241,17 @@ class GitPath:
         """Combines the path with each of the other arguments in turn.
 
         >>> GitPath('./repo').joinpath('README')
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'README')
         >>> GitPath('./repo').joinpath(pathlib.PurePosixPath('README'))
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'README')
         >>> GitPath('./repo').joinpath('tests', 'runtests.sh')
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'tests', 'runtests.sh')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'tests', 'runtests.sh')
 
         If an argument in *other* is an absolute path, it resets the path
         to the GitPath's root (mimicking :func:`os.path.join()`‘s behaviour).
 
         >>> GitPath('./repo').joinpath('tests', '/README')
-        gitpathlib.GitPath('.../repo/', '31b40fb...', 'README')
+        gitpathlib.GitPath('.../repo', '31b40fb...', 'README')
         """
         other = pathlib.PurePosixPath(*other)
         if other.is_absolute():
@@ -370,8 +338,8 @@ class GitPath:
         ...
         ValueError: '/a/b.py' does not start with '/README'
         """
-        if isinstance(other, GitPath):
-            if self._gp_base.hex != other._gp_base.hex:
+        if isinstance(other, BaseGitPath):
+            if self.root != other.root:
                 raise ValueError('Paths have different roots')
             ppp = other._gp_pureposixpath
         else:
@@ -380,14 +348,8 @@ class GitPath:
 
 
 def eq_key(gitpath):
-    return (gitpath._gp_base.hex, *gitpath.parts[1:])
+    return (gitpath.root, *gitpath.parts[1:])
 
-
-def repo_path(repo):
-    if repo.is_bare:
-        return repo.path
-    else:
-        return repo.workdir
 
 def good_part_name(name):
     if '/' in name or '\0' in name or not name:

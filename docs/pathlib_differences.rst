@@ -34,14 +34,14 @@ arguments to GitPath.
 
 >>> p = GitPath('./repo', 'HEAD', 'dir', 'file')
 >>> p
-gitpathlib.GitPath('.../repo/', '31b40fb...', 'dir', 'file')
+gitpathlib.GitPath('.../repo', '31b40fb...', 'dir', 'file')
 
 The repository and tree are accessible in the :attr:`~GitPath.drive` and
 :attr:`~GitPath.root` properties of ``GitPath``.
 In ``pathlib``, these properties hold the Windows drive and root, respectively.
 
 >>> p.drive
-'.../repo/.git/'
+'.../repo'
 >>> p.root
 '31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
 
@@ -50,9 +50,9 @@ holds a concatenation of the repository and ``root``.
 Unlike in ``pathlib``, the two are separated by a semicolon:
 
 >>> p.anchor
-'.../repo/.git/:31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
+'.../repo:31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
 >>> p.parts
-('.../repo/.git/:31b40fb...', 'dir', 'file')
+('.../repo:31b40fb...', 'dir', 'file')
 
 GitPath objects can only be absolute.
 For relative paths within a repository, use ``pathlib.PurePosixPath``.
@@ -74,10 +74,10 @@ if they are rooted in the same tree:
 
 >>> a = GitPath('./repo')
 >>> a
-gitpathlib.GitPath('.../repo/', '31b40fb...')
+gitpathlib.GitPath('.../repo', '31b40fb...')
 >>> b = GitPath('./cloned_repo')
 >>> b
-gitpathlib.GitPath('.../cloned_repo/', '31b40fb...')
+gitpathlib.GitPath('.../cloned_repo', '31b40fb...')
 >>> a == b
 True
 
