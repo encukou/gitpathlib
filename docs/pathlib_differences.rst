@@ -101,3 +101,14 @@ Unimplemented and uninteresting functions
 .. automethod:: GitPath.as_uri()
 .. automethod:: GitPath.is_absolute()
 .. automethod:: GitPath.is_reserved()
+
+.. method:: GitPath.cwd()
+
+    Return a :class:`pathlib.Path` object representing the current directory.
+    (This has nothing to do with Git.)
+
+.. method:: GitPath.home()
+
+    Return a :class:`pathlib.Path` object representing the user's home
+    directory.
+    (This has nothing to do with Git.)

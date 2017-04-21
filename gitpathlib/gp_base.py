@@ -265,6 +265,8 @@ class BaseGitPath:
         return result
 
     as_posix = NotImplemented
+    cwd = pathlib.Path.cwd
+    home = pathlib.Path.home
 
     def as_uri(self):
         """Raises ValueError.

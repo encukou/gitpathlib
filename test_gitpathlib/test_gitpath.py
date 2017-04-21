@@ -390,3 +390,13 @@ def test_with_name_badsuffix(testrepo, badsuffix):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
     with pytest.raises(ValueError):
         path = path.with_suffix(badsuffix)
+
+
+def test_cwd(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    assert path.cwd() == Path.cwd()
+
+
+def test_home(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    assert path.home() == Path.home()
