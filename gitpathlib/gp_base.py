@@ -14,9 +14,16 @@ class ReadOnlyError(GitPathError, PermissionError):
     """Attempt to modify an immutable Git tree"""
 
 
+class ObjectNotFoundError(GitPathError, FileNotFoundError):
+    """Git object not found"""
+
+
 def _raise_readonly(self, *args, **kwargs):
     """Raises ReadOnlyError."""
     raise ReadOnlyError('Cannot modify a GitPath')
+
+
+UNRESOLVED = object()
 
 
 @functools.total_ordering
@@ -398,6 +405,77 @@ class BaseGitPath:
     unlink = _raise_readonly
     write_bytes = _raise_readonly
     write_text = _raise_readonly
+
+    def resolve(self, strict=False):
+        """Make this path absolute, resolving any symlinks.
+
+        A new path object is returned:
+
+        >>> p = GitPath('./slrepo', 'HEAD', 'symlink-to-dir/file')
+        >>> p.resolve()
+        gitpathlib.GitPath('.../slrepo', '88823a5...', 'dir', 'file')
+
+        “``..``” components are also eliminated (this is the only method to
+        do so):
+
+        >>> p = GitPath('./repo', 'HEAD', 'dir/..')
+        >>> p.resolve()
+        gitpathlib.GitPath('.../repo', '31b40fb...')
+
+        If the path doesn’t exist and strict is ``True``,
+        :class:`FileNotFoundError` is raised.
+        If *strict* is ``False``, the path is resolved as far as possible
+        and any remainder is appended without checking whether it exists.
+        If an infinite loop is encountered along the resolution path,
+        :class:`RuntimeError` is raised.
+        """
+        return resolve(self, strict, {})
+
+def resolve(self, strict, seen):
+    try:
+        if strict:
+            return self._gp_resolved_strict
+        else:
+            return self._gp_resolved_nonstrict
+    except AttributeError:
+        pass
+
+    def _resolve():
+        if self is self.parent:
+            return self
+        if self.name == '.':
+            return self
+        parent = resolve(self.parent, strict, seen)
+        if self.name == '..':
+            return parent.parent
+        if parent is self.parent:
+            sibling = self
+        else:
+            sibling = parent._gp_make_child(self.name)
+        if not sibling._gp_exists:
+            if strict:
+                raise ObjectNotFoundError(str(sibling))
+            else:
+                return sibling
+        link = sibling._gp_read_link
+        if link is not None:
+            if self in seen:
+                result = seen[self]
+                if result == UNRESOLVED:
+                    raise RuntimeError("Symlink loop from '{}'".format(self))
+                return result
+            seen[self] = UNRESOLVED
+            result = resolve(parent.joinpath(link), strict, seen)
+            seen[self] = result
+            return result
+        return sibling
+
+    result = _resolve()
+    if strict:
+        self._gp_resolved_strict = result
+    else:
+        self._gp_resolved_nonstrict = result
+    return result
 
 
 def eq_key(gitpath):

@@ -47,6 +47,25 @@ class PygitPath(BaseGitPath):
 
 
     @reify
+    def _gp_exists(self):
+        if self is self.parent:
+            return True
+        elif self.parent._gp_exists:
+            tree = self.parent._gp_obj.peel(pygit2.Tree)
+            return self.name in tree
+        else:
+            return False
+
+
+    @reify
+    def _gp_read_link(self):
+        obj = self._gp_obj
+        if (obj.type == pygit2.GIT_OBJ_BLOB and
+                self._gp_entry.filemode == pygit2.GIT_FILEMODE_LINK):
+            return obj.data.decode('utf-8', errors='surrogateescape')
+        return None
+
+    @reify
     @inherit_docstring(BaseGitPath)
     def hex(self):
         return self._gp_obj.hex

@@ -21,7 +21,20 @@ def testrepo(tmpdir):
             dir:
                 file: |
                     Here are the contents of a file
+                link-up: [link, ..]
+                link-dot: [link, .]
+                link-self-rel: [link, ../dir]
+                link-self-abs: [link, /dir]
             link: [link, dir/file]
+            broken-link: [link, nonexistent-file]
+            link-to-dir: [link, dir]
+            abs-link: [link, /dir/file]
+            abs-link-to-dir: [link, /dir/]
+            abs-broken-link: [link, /nonexistent-file]
+            self-loop-link: [link, self-loop-link]
+            abs-self-loop-link: [link, /self-loop-link]
+            loop-link-a: [link, loop-link-b]
+            loop-link-b: [link, loop-link-a]
             executable: [executable, '#!/bin/sh']
     """)
     path = os.path.join(str(tmpdir), 'testrepo')
@@ -407,8 +420,8 @@ def test_home(testrepo):
 @pytest.mark.parametrize(
     ['path', 'mode', 'size', 'g_type'],
     [
-        ('/', 0o40000, 3, 'tree'),
-        ('/dir', 0o40000, 1, 'tree'),
+        ('/', 0o40000, 12, 'tree'),
+        ('/dir', 0o40000, 5, 'tree'),
         ('/dir/file', 0o100644, 32, 'blob'),
         ('/link', 0o120000, 8, 'blob'),
         ('/executable', 0o100755, 9, 'blob'),
@@ -447,3 +460,70 @@ def test_mutate(testrepo, meth_name):
         meth('/foo')
     with pytest.raises(PermissionError):
         meth(b'foo')
+
+
+@pytest.mark.parametrize('strict', (True, False))
+@pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('.', '/'),
+        ('/', '/'),
+        ('/dir', '/dir'),
+        ('/dir/file', '/dir/file'),
+        ('/dir/..', '/'),
+        ('/dir/../dir', '/dir'),
+        ('/dir/link-up', '/'),
+        ('/dir/link-dot', '/dir'),
+        ('/dir/link-self-rel', '/dir'),
+        ('/dir/link-self-abs', '/dir'),
+        ('/link', '/dir/file'),
+        ('/link-to-dir', '/dir'),
+        ('/link-to-dir/file', '/dir/file'),
+        ('/abs-link', '/dir/file'),
+        ('/abs-link-to-dir', '/dir'),
+        ('/abs-link-to-dir/file', '/dir/file'),
+    ])
+def test_resolve_good(testrepo, path, expected, strict):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    expected_path = gitpathlib.GitPath(testrepo.path, 'HEAD', expected)
+    assert path.resolve(strict) == expected_path
+
+
+@pytest.mark.parametrize('strict', (True, False))
+@pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('/broken-link', '/nonexistent-file'),
+        ('/broken-link/more/stuff', '/nonexistent-file/more/stuff'),
+        ('/broken-link/more/../stuff', '/nonexistent-file/stuff'),
+        ('/link-to-dir/../broken-link/stuff', '/nonexistent-file/stuff'),
+        ('/abs-broken-link', '/nonexistent-file'),
+        ('/abs-broken-link/more', '/nonexistent-file/more'),
+    ])
+def test_resolve_ugly(testrepo, path, expected, strict):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    expected_path = gitpathlib.GitPath(testrepo.path, 'HEAD', expected)
+    if strict:
+        with pytest.raises(gitpathlib.ObjectNotFoundError):
+            path.resolve(strict)
+    else:
+        assert path.resolve(strict) == expected_path
+
+
+@pytest.mark.parametrize('strict', (True, False))
+@pytest.mark.parametrize(
+    'path',
+    [
+        '/self-loop-link',
+        '/self-loop-link/more',
+        '/abs-self-loop-link',
+        '/abs-self-loop-link/more',
+        '/loop-link-a',
+        '/loop-link-a',
+        '/loop-link-b/more',
+        '/loop-link-b/more',
+    ])
+def test_resolve_bad(testrepo, path, strict):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    with pytest.raises(RuntimeError):
+        path.resolve(strict)

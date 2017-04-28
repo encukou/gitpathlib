@@ -61,6 +61,15 @@ def setup_doctests():
     make_repo('repo', contents, bare=False)
     make_repo('cloned_repo', contents, bare=False)
 
+    contents = yaml.safe_load("""
+        - tree:
+            dir:
+                file: |
+                    Here are the contents of a file
+            symlink-to-dir: [link, dir]
+    """)
+    make_repo('slrepo', contents, bare=False)
+
     def cleanup():
         temp_dir
         os.chdir(previous_wd)

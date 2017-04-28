@@ -143,6 +143,9 @@ repository information:
 
 .. automethod:: GitPath.stat
 
+
+.. automethod:: GitPath.resolve
+
 Methods and properties that exist only for compatibility with :mod:`pathlib`
 are listed in :ref:`unimplemented`.
 
@@ -152,7 +155,14 @@ are listed in :ref:`unimplemented`.
 Exceptions
 ----------
 
-The following custom exceptions are specific to gitpathlib:
+The following exceptions are specific to gitpathlib:
 
 .. autoexception:: GitPathError
+
 .. autoexception:: ReadOnlyError
+
+    Subclass of :exc:`PermissionError`.
+
+.. autoexception:: ObjectNotFoundError
+
+    Subclass of :exc:`FileNotFoundError`.
