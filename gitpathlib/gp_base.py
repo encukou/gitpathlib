@@ -431,6 +431,27 @@ class BaseGitPath:
         """
         return resolve(self, strict, {})
 
+    def exists(self):
+        """Whether the path points to an existing file or directory:
+
+        >>> GitPath('repo', 'HEAD').exists()
+        True
+        >>> GitPath('repo', 'HEAD', 'dir/file').exists()
+        True
+        >>> GitPath('repo', 'HEAD', 'nonexistent-file').exists()
+        False
+
+        .. note::
+
+            If the path points to a symlink, ``exists()`` returns whether
+            the symlink *points to* an existing file or directory.
+        """
+        try:
+            resolved = self.resolve(strict=True)
+        except ObjectNotFoundError:
+            return False
+        return resolved._gp_exists
+
     def expanduser(self):
         """Return this path unchanged.
 

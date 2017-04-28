@@ -142,6 +142,7 @@ Git paths provide the following methods and properties for accessing the
 repository information:
 
 .. automethod:: GitPath.stat
+.. automethod:: GitPath.exists
 
 
 .. automethod:: GitPath.resolve

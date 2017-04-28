@@ -542,3 +542,30 @@ def test_resolve_bad(testrepo, path, strict):
 def test_expaduser(testrepo, path):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
     assert path.expanduser() == path
+
+
+@pytest.mark.parametrize(
+    'path',
+    [
+        '/',
+        '/dir',
+        '/dir/file',
+        '/link',
+        '/link-to-dir/file',
+    ])
+def test_exists(testrepo, path):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path.exists()
+
+
+@pytest.mark.parametrize(
+    'path',
+    [
+        '/nonexistent-file',
+        '/broken-link',
+        '/dir/nonexistent-file',
+        '/dir/../nonexistent-file',
+    ])
+def test_not_exists(testrepo, path):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert not path.exists()
