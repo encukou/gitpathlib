@@ -4,7 +4,7 @@ import pathlib
 
 import pygit2
 
-from .gp_base import BaseGitPath
+from .gp_base import BaseGitPath, NotATreeError
 from .util import reify, inherit_docstring
 
 GIT_TYPES = {
@@ -64,6 +64,13 @@ class PygitPath(BaseGitPath):
                 self._gp_entry.filemode == pygit2.GIT_FILEMODE_LINK):
             return obj.data.decode('utf-8', errors='surrogateescape')
         return None
+
+    @reify
+    def _gp_dir_contents(self):
+        obj = self._gp_obj
+        if obj.type == pygit2.GIT_OBJ_TREE:
+            return tuple(e.name for e in obj)
+        raise NotATreeError('Not a tree: {}'.format(self))
 
     @reify
     @inherit_docstring(BaseGitPath)

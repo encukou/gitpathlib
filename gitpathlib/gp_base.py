@@ -18,6 +18,10 @@ class ObjectNotFoundError(GitPathError, FileNotFoundError):
     """Git object not found"""
 
 
+class NotATreeError(GitPathError, NotADirectoryError):
+    """Git object is not a tree"""
+
+
 def _raise_readonly(self, *args, **kwargs):
     """Raises ReadOnlyError."""
     raise ReadOnlyError('Cannot modify a GitPath')
@@ -458,6 +462,21 @@ class BaseGitPath:
         Git paths are always absolute; they cannot begin with ``~``.
         """
         return self
+
+    def iterdir(self):
+        """Yield path objects of the directory contents:
+
+        >>> p = GitPath('project', 'HEAD')
+        >>> for child in p.iterdir():
+        ...     print(child)
+        ...
+        gitpathlib.GitPath('.../project', '0d0726b...', '.gitignore')
+        gitpathlib.GitPath('.../project', '0d0726b...', 'LICENSE')
+        gitpathlib.GitPath('.../project', '0d0726b...', 'README')
+        gitpathlib.GitPath('.../project', '0d0726b...', 'setup.py')
+        """
+        for element in self.resolve(strict=True)._gp_dir_contents:
+            yield self._gp_make_child(element)
 
 
 

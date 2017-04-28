@@ -70,6 +70,15 @@ def setup_doctests():
     """)
     make_repo('slrepo', contents, bare=False)
 
+    contents = yaml.safe_load("""
+        - tree:
+            .gitignore: __pycache__/
+            README: bla bla
+            LICENSE: ⚖
+            setup.py: import setuptools
+    """)
+    make_repo('project', contents, bare=False)
+
     def cleanup():
         temp_dir
         os.chdir(previous_wd)

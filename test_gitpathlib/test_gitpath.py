@@ -569,3 +569,36 @@ def test_exists(testrepo, path):
 def test_not_exists(testrepo, path):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
     assert not path.exists()
+
+
+@pytest.mark.parametrize(
+    ['directory', 'contents'],
+    [
+        ('/', {'dir', 'link', 'broken-link', 'link-to-dir', 'abs-link',
+               'abs-link-to-dir', 'abs-broken-link', 'self-loop-link',
+               'abs-self-loop-link', 'loop-link-a', 'loop-link-b',
+               'executable'}),
+        ('/dir', {'file', 'link-up', 'link-dot', 'link-self-rel',
+                  'link-self-abs'}),
+    ])
+def test_iterdir(testrepo, directory, contents):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+    expected = set(
+        gitpathlib.GitPath(testrepo.path, 'HEAD', directory, content)
+        for content in contents
+    )
+    assert set(path.iterdir()) == set(expected)
+
+
+@pytest.mark.parametrize(
+    ['path', 'exception'],
+    [
+        ('/dir/file', gitpathlib.NotATreeError),
+        ('/link', gitpathlib.NotATreeError),
+        ('/nonexistent-file', gitpathlib.ObjectNotFoundError),
+        ('/broken-link', gitpathlib.ObjectNotFoundError),
+    ])
+def test_iterdir_fail(testrepo, path, exception):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    with pytest.raises(exception):
+        assert set(path.iterdir())

@@ -145,6 +145,7 @@ repository information:
 .. automethod:: GitPath.exists
 
 
+.. automethod:: GitPath.iterdir
 .. automethod:: GitPath.resolve
 
 Methods and properties that exist only for compatibility with :mod:`pathlib`
@@ -167,3 +168,7 @@ The following exceptions are specific to gitpathlib:
 .. autoexception:: ObjectNotFoundError
 
     Subclass of :exc:`FileNotFoundError`.
+
+.. autoexception:: NotATreeError
+
+    Subclass of :exc:`NotADirectoryError`.
