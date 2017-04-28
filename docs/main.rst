@@ -145,6 +145,7 @@ repository information:
 .. automethod:: GitPath.exists
 
 
+.. automethod:: GitPath.is_dir
 .. automethod:: GitPath.iterdir
 .. automethod:: GitPath.resolve
 

@@ -602,3 +602,19 @@ def test_iterdir_fail(testrepo, path, exception):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
     with pytest.raises(exception):
         assert set(path.iterdir())
+
+
+@pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('/', True),
+        ('/dir', True),
+        ('/dir/file', False),
+        ('/link', False),
+        ('/link-to-dir', True),
+        ('/nonexistent-file', False),
+        ('/broken-link', False),
+    ])
+def test_is_dir(testrepo, path, expected):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path.is_dir() == expected

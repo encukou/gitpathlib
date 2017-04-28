@@ -56,11 +56,14 @@ class PygitPath(BaseGitPath):
         else:
             return False
 
+    @reify
+    def _gp_type(self):
+        return GIT_TYPES[self._gp_obj.type]
 
     @reify
     def _gp_read_link(self):
         obj = self._gp_obj
-        if (obj.type == pygit2.GIT_OBJ_BLOB and
+        if (self._gp_type == 'blob' and
                 self._gp_entry.filemode == pygit2.GIT_FILEMODE_LINK):
             return obj.data.decode('utf-8', errors='surrogateescape')
         return None
@@ -68,7 +71,7 @@ class PygitPath(BaseGitPath):
     @reify
     def _gp_dir_contents(self):
         obj = self._gp_obj
-        if obj.type == pygit2.GIT_OBJ_TREE:
+        if self._gp_type == 'tree':
             return tuple(e.name for e in obj)
         raise NotATreeError('Not a tree: {}'.format(self))
 
@@ -82,7 +85,6 @@ class PygitPath(BaseGitPath):
     @inherit_docstring(BaseGitPath)
     def stat(self):
         self = self.resolve(strict=True)
-        git_type = GIT_TYPES[self._gp_obj.type]
         if self is self.parent:
             st_mode = pygit2.GIT_FILEMODE_TREE
         else:
@@ -92,9 +94,9 @@ class PygitPath(BaseGitPath):
         st_nlink = 1
         st_uid = 0
         st_gid = 0
-        if git_type == 'blob':
+        if self._gp_type == 'blob':
             st_size = self._gp_obj.size
-        elif git_type == 'tree':
+        elif self._gp_type == 'tree':
             st_size = len(self._gp_obj)
         else:
             st_size = 0

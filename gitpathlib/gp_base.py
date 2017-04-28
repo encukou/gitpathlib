@@ -478,6 +478,21 @@ class BaseGitPath:
         for element in self.resolve(strict=True)._gp_dir_contents:
             yield self._gp_make_child(element)
 
+    def is_dir(self):
+        """Whether the path points to a tree (directory)
+
+        Return ``True`` if the path points to a tree (or a symbolic link
+        pointing to a tree), ``False`` if it points to another kind
+        of object.
+
+        ``False`` is also returned if the path doesn’t exist or is a broken
+        link; other errors are propagated.
+        """
+        try:
+            resolved = self.resolve(strict=True)
+        except ObjectNotFoundError:
+            return False
+        return resolved._gp_type == 'tree'
 
 
 def resolve(self, strict, seen):
