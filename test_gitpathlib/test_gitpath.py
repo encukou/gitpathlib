@@ -423,12 +423,22 @@ def test_home(testrepo):
         ('/', 0o40000, 12, 'tree'),
         ('/dir', 0o40000, 5, 'tree'),
         ('/dir/file', 0o100644, 32, 'blob'),
-        ('/link', 0o120000, 8, 'blob'),
         ('/executable', 0o100755, 9, 'blob'),
+
+        ('/link', 0o100644, 32, 'blob'),
+        ('/link-to-dir', 0o40000, 5, 'blob'),
+
+        ('/broken-link', None, None, None),
     ]
 )
 def test_stat_root(testrepo, path, mode, size, g_type):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+
+    if mode is None:
+        with pytest.raises(gitpathlib.ObjectNotFoundError):
+            stat = path.stat()
+        return
+
     stat = path.stat()
     print(oct(stat.st_mode))
     assert stat.st_mode == stat[0] == mode

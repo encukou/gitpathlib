@@ -68,11 +68,13 @@ class PygitPath(BaseGitPath):
     @reify
     @inherit_docstring(BaseGitPath)
     def hex(self):
+        self = self.resolve(strict=True)
         return self._gp_obj.hex
 
 
     @inherit_docstring(BaseGitPath)
     def stat(self):
+        self = self.resolve(strict=True)
         git_type = GIT_TYPES[self._gp_obj.type]
         if self is self.parent:
             st_mode = pygit2.GIT_FILEMODE_TREE
