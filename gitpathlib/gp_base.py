@@ -1,5 +1,6 @@
 import functools
 import pathlib
+import fnmatch
 
 from .util import reify
 
@@ -470,10 +471,11 @@ class BaseGitPath:
         >>> for child in p.iterdir():
         ...     print(child)
         ...
-        gitpathlib.GitPath('.../project', '0d0726b...', '.gitignore')
-        gitpathlib.GitPath('.../project', '0d0726b...', 'LICENSE')
-        gitpathlib.GitPath('.../project', '0d0726b...', 'README')
-        gitpathlib.GitPath('.../project', '0d0726b...', 'setup.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', '.gitignore')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'LICENSE')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'README')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'setup.py')
         """
         for element in self.resolve(strict=True)._gp_dir_contents:
             yield self._gp_make_child(element)
@@ -493,6 +495,46 @@ class BaseGitPath:
         except ObjectNotFoundError:
             return False
         return resolved._gp_type == 'tree'
+
+    def glob(self, pattern):
+        """Glob the given pattern, yielding all matching files (of any kind).
+
+        Glob the given pattern in the directory represented by this path.
+
+        >>> for p in GitPath('project', 'HEAD').glob('*.py'):
+        ...     print(p)
+        ...
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'setup.py')
+
+        >>> for p in GitPath('project', 'HEAD').glob('*/*.py'):
+        ...     print(p)
+        ...
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', '__init__.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'util.py')
+
+        The “``**``” pattern means “this directory and all subdirectories,
+        recursively”. In other words, it enables recursive globbing:
+
+        >>> for p in GitPath('project', 'HEAD').glob('**/*.py'):
+        ...     print(p)
+        ...
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'setup.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', '__init__.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'util.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'tests', 'test_bar.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'tests', 'test_foo.py')
+
+        .. note::
+
+            Using the “``**``” pattern in large directory trees may consume
+            an inordinate amount of time.
+        """
+        pattern = pathlib.PurePosixPath(pattern)
+        if pattern.is_absolute():
+            raise NotImplementedError('Non-relative patterns are unsupported')
+        if not pattern.parts:
+            raise ValueError('Empty pattern')
+        return glob(self, *pattern.parts, seen=set())
 
 
 def resolve(self, strict, seen):
@@ -540,6 +582,31 @@ def resolve(self, strict, seen):
     else:
         self._gp_resolved_nonstrict = result
     return result
+
+
+def glob(self, part=None, *more_parts, seen):
+    if part is None:
+        yield self
+        return
+    try:
+        resolved = self.resolve(strict=False)
+    except RuntimeError:
+        return
+    if not resolved.exists():
+        return
+    if resolved in seen:
+        return
+    if self.is_dir():
+        if part == '**':
+            yield from glob(self, *more_parts, seen=set())
+            for child in self.iterdir():
+                yield from glob(child, '**', *more_parts, seen=seen | {resolved})
+        elif part == '..':
+            yield from glob(self._gp_make_child('..'), *more_parts, seen=set())
+        else:
+            for child in self.iterdir():
+                if fnmatch.fnmatchcase(child.name, part):
+                    yield from glob(child, *more_parts, seen=set())
 
 
 def eq_key(gitpath):

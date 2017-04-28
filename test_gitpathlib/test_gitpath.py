@@ -25,6 +25,9 @@ def testrepo(tmpdir):
                 link-dot: [link, .]
                 link-self-rel: [link, ../dir]
                 link-self-abs: [link, /dir]
+                subdir:
+                    file: contents
+                    link-back: [link, ../..]
             link: [link, dir/file]
             broken-link: [link, nonexistent-file]
             link-to-dir: [link, dir]
@@ -421,12 +424,12 @@ def test_home(testrepo):
     ['path', 'mode', 'size', 'g_type'],
     [
         ('/', 0o40000, 12, 'tree'),
-        ('/dir', 0o40000, 5, 'tree'),
+        ('/dir', 0o40000, 6, 'tree'),
         ('/dir/file', 0o100644, 32, 'blob'),
         ('/executable', 0o100755, 9, 'blob'),
 
         ('/link', 0o100644, 32, 'blob'),
-        ('/link-to-dir', 0o40000, 5, 'blob'),
+        ('/link-to-dir', 0o40000, 6, 'blob'),
 
         ('/broken-link', None, None, None),
     ]
@@ -579,7 +582,7 @@ def test_not_exists(testrepo, path):
                'abs-self-loop-link', 'loop-link-a', 'loop-link-b',
                'executable'}),
         ('/dir', {'file', 'link-up', 'link-dot', 'link-self-rel',
-                  'link-self-abs'}),
+                  'link-self-abs', 'subdir'}),
     ])
 def test_iterdir(testrepo, directory, contents):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
@@ -618,3 +621,43 @@ def test_iterdir_fail(testrepo, path, exception):
 def test_is_dir(testrepo, path, expected):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
     assert path.is_dir() == expected
+
+
+@pytest.mark.parametrize(
+    ['directory', 'pattern', 'matches'],
+    [
+        ('/', 'dir', {'dir'}),
+        ('/', '*link', {'link', 'broken-link', 'abs-link', 'abs-broken-link',
+                        'self-loop-link', 'abs-self-loop-link'}),
+        ('/', '**/file', {'dir/file', 'dir/subdir/file',
+                          'link-to-dir/file', 'link-to-dir/subdir/file',
+                          'abs-link-to-dir/file', 'abs-link-to-dir/subdir/file',
+                          }),
+        ('/', '**', {'/', 'dir', 'dir/subdir',
+                     'link-to-dir', 'abs-link-to-dir',
+                     'link-to-dir/subdir', 'abs-link-to-dir/subdir'}),
+        ('/', '**/..', {'/..', 'dir/..', 'dir/subdir/..',
+                        'link-to-dir/..', 'abs-link-to-dir/..',
+                        'link-to-dir/subdir/..', 'abs-link-to-dir/subdir/..'}),
+        ('/file', '*', {}),
+        ('/dir', '../ex*e', {'dir/../executable'}),
+    ])
+def test_glob(testrepo, directory, pattern, matches):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+    expected = {
+        gitpathlib.GitPath(testrepo.path, 'HEAD', match)
+        for match in matches
+    }
+    assert set(path.glob(pattern)) == expected
+
+
+@pytest.mark.parametrize(
+    ['directory', 'pattern', 'exception'],
+    [
+        ('/', '', ValueError),
+        ('/', '/', NotImplementedError),
+    ])
+def test_glob_bad(testrepo, directory, pattern, exception):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+    with pytest.raises(exception):
+        list(path.glob(pattern))

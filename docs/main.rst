@@ -143,6 +143,7 @@ repository information:
 
 .. automethod:: GitPath.stat
 .. automethod:: GitPath.exists
+.. automethod:: GitPath.glob
 
 
 .. automethod:: GitPath.is_dir

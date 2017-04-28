@@ -76,6 +76,12 @@ def setup_doctests():
             README: bla bla
             LICENSE: ⚖
             setup.py: import setuptools
+            project:
+                __init__.py: __all__ = ...
+                util.py: import six
+                tests:
+                    test_foo.py: import pytest
+                    test_bar.py: import pytest
     """)
     make_repo('project', contents, bare=False)
 
