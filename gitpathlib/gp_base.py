@@ -431,6 +431,15 @@ class BaseGitPath:
         """
         return resolve(self, strict, {})
 
+    def expanduser(self):
+        """Return this path unchanged.
+
+        Git paths are always absolute; they cannot begin with ``~``.
+        """
+        return self
+
+
+
 def resolve(self, strict, seen):
     try:
         if strict:

@@ -454,7 +454,6 @@ def test_stat_root(testrepo, path, mode, size, g_type):
     assert stat.st_ctime == stat[9] == 0
 
 
-
 @pytest.mark.parametrize(
     'meth_name',
     ['chmod', 'mkdir', 'rename', 'replace', 'rmdir', 'symlink_to', 'touch',
@@ -537,3 +536,9 @@ def test_resolve_bad(testrepo, path, strict):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
     with pytest.raises(RuntimeError):
         path.resolve(strict)
+
+
+@pytest.mark.parametrize('path', ['/dir', '/dir/file', 'bla/bla'])
+def test_expaduser(testrepo, path):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path.expanduser() == path

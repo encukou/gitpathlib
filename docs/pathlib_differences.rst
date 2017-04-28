@@ -113,6 +113,9 @@ Unimplemented and uninteresting functions
     directory.
     (This has nothing to do with Git.)
 
+.. automethod:: GitPath.expanduser()
+
+
 Modification functions
 ......................
 
