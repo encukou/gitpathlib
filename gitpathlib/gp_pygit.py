@@ -4,7 +4,7 @@ import pathlib
 
 import pygit2
 
-from .gp_base import BaseGitPath, NotATreeError
+from .gp_base import BaseGitPath, NotATreeError, NotABlobError
 from .util import reify, inherit_docstring
 
 GIT_TYPES = {
@@ -62,11 +62,15 @@ class PygitPath(BaseGitPath):
 
     @reify
     def _gp_read_link(self):
-        obj = self._gp_obj
         if (self._gp_type == 'blob' and
                 self._gp_entry.filemode == pygit2.GIT_FILEMODE_LINK):
-            return obj.data.decode('utf-8', errors='surrogateescape')
+            return self._gp_read().decode('utf-8', errors='surrogateescape')
         return None
+
+    def _gp_read(self):
+        if self._gp_type == 'blob':
+            return self._gp_obj.data
+        raise NotABlobError('Not a blob: {}'.format(self))
 
     @reify
     def _gp_dir_contents(self):

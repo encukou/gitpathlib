@@ -673,3 +673,28 @@ def test_owner(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD')
     with pytest.raises(KeyError):
         path.owner()
+
+
+@pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('/dir/file', b'Here are the contents of a file\n'),
+        ('/link', b'Here are the contents of a file\n'),
+    ])
+def test_read_bytes(testrepo, path, expected):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path.read_bytes() == expected
+
+
+@pytest.mark.parametrize(
+    ['path', 'exception'],
+    [
+        ('/dir', gitpathlib.NotABlobError),
+        ('/link-to-dir', gitpathlib.NotABlobError),
+        ('/nonexistent-file', gitpathlib.ObjectNotFoundError),
+        ('/broken-link', gitpathlib.ObjectNotFoundError),
+    ])
+def test_read_bytes_exc(testrepo, path, exception):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    with pytest.raises(exception):
+        path.read_bytes()

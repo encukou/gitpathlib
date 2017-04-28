@@ -1,5 +1,6 @@
 from gitpathlib.gp_base import BaseGitPath, GitPathError, ReadOnlyError
 from gitpathlib.gp_base import ObjectNotFoundError, NotATreeError
+from gitpathlib.gp_base import NotABlobError
 from gitpathlib.gp_pygit import PygitPath
 
 
@@ -9,5 +10,5 @@ class GitPath(PygitPath):
 
 __all__ = [
     'GitPath', 'GitPathError', 'ReadOnlyError', 'ObjectNotFoundError',
-    'NotATreeError'
+    'NotATreeError', 'NotABlobError'
 ]

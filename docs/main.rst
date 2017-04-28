@@ -144,6 +144,7 @@ repository information:
 .. automethod:: GitPath.stat
 .. automethod:: GitPath.exists
 .. automethod:: GitPath.glob
+.. automethod:: GitPath.read_bytes
 
 
 .. automethod:: GitPath.is_dir
@@ -174,3 +175,7 @@ The following exceptions are specific to gitpathlib:
 .. autoexception:: NotATreeError
 
     Subclass of :exc:`NotADirectoryError`.
+
+.. autoexception:: NotABlobError
+
+    Subclass of :exc:`IsADirectoryError`.

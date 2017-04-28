@@ -23,6 +23,10 @@ class NotATreeError(GitPathError, NotADirectoryError):
     """Git object is not a tree"""
 
 
+class NotABlobError(GitPathError, IsADirectoryError):
+    """Git object is not a blob"""
+
+
 def _raise_readonly(self, *args, **kwargs):
     """Raises ReadOnlyError."""
     raise ReadOnlyError('Cannot modify a GitPath')
@@ -543,6 +547,15 @@ class BaseGitPath:
     def owner(self):
         """Raises :exc:`KeyError`, since Git objects aren't owned by users."""
         raise KeyError('Git objects not owned by a user')
+
+    def read_bytes(self):
+        """Return the binary contents of the pointed-to file as a bytes object:
+
+        >>> p = GitPath('./project') / 'README'
+        >>> p.read_bytes()
+        b'bla bla'
+        """
+        return self.resolve(strict=True)._gp_read()
 
 
 def resolve(self, strict, seen):
