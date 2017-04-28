@@ -536,6 +536,14 @@ class BaseGitPath:
             raise ValueError('Empty pattern')
         return glob(self, *pattern.parts, seen=set())
 
+    def group(self):
+        """Raises :exc:`KeyError`, since Git objects aren't owned by groups."""
+        raise KeyError('Git objects not owned by a group')
+
+    def owner(self):
+        """Raises :exc:`KeyError`, since Git objects aren't owned by users."""
+        raise KeyError('Git objects not owned by a user')
+
 
 def resolve(self, strict, seen):
     try:

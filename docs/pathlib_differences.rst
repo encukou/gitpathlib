@@ -114,6 +114,8 @@ Unimplemented and uninteresting functions
     (This has nothing to do with Git.)
 
 .. automethod:: GitPath.expanduser()
+.. automethod:: GitPath.group()
+.. automethod:: GitPath.owner()
 
 
 Modification functions

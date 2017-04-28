@@ -661,3 +661,15 @@ def test_glob_bad(testrepo, directory, pattern, exception):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
     with pytest.raises(exception):
         list(path.glob(pattern))
+
+
+def test_group(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    with pytest.raises(KeyError):
+        path.group()
+
+
+def test_owner(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+    with pytest.raises(KeyError):
+        path.owner()
