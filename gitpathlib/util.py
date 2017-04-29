@@ -13,17 +13,3 @@ class reify:
         val = self.wrapped(obj)
         setattr(obj, self.name, val)
         return val
-
-
-def backend_cache(name):
-    def _decorator(func):
-        @functools.wraps(func)
-        def wrapped(self, inst):
-            try:
-                return getattr(inst, name)
-            except AttributeError:
-                value = func(self, inst)
-            setattr(inst, name, value)
-            return value
-        return wrapped
-    return _decorator

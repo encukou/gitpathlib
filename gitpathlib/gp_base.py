@@ -1,7 +1,9 @@
 import functools
+import binascii
 import pathlib
 import fnmatch
 import io
+import os
 
 from .util import reify
 
@@ -402,7 +404,7 @@ class BaseGitPath:
         backend = self._gp_backend
         if not backend.exists(resolved):
             raise ObjectNotFoundError(self)
-        return backend.lstat(resolved)
+        return resolved.lstat()
 
     def lstat(self):
         """Like :meth:`stat()` but, if the path points to a symbolic link,
@@ -412,6 +414,21 @@ class BaseGitPath:
         if not exists:
             raise ObjectNotFoundError(self)
         backend = self._gp_backend
+        oid_hex = backend.hex(sibling)
+        inode = int.from_bytes(binascii.unhexlify(oid_hex), 'little')
+        return os.stat_result([
+            backend.get_mode(sibling),  # st_mode
+            inode,  # st_ino
+            -1,  # st_dev
+            1,  # st_nlink
+            0,  # st_uid
+            0,  # st_gid
+            backend.get_size(sibling),  # st_size
+            0,  # st_atime
+            0,  # st_mtime
+            0,  # st_ctime
+        ])
+
         return backend.lstat(sibling)
 
     chmod = _raise_readonly
