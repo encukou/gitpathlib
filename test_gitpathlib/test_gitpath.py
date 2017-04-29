@@ -511,6 +511,8 @@ def test_resolve_good(testrepo, path, expected, strict):
         ('/link-to-dir/../broken-link/stuff', '/nonexistent-file/stuff'),
         ('/abs-broken-link', '/nonexistent-file'),
         ('/abs-broken-link/more', '/nonexistent-file/more'),
+        ('/dir/nonexistent/..', '/dir'),
+        #('/dir/file/..', '/dir'),  # XXX - what to do here?
     ])
 def test_resolve_ugly(testrepo, path, expected, strict):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
@@ -555,6 +557,7 @@ def test_expaduser(testrepo, path):
         '/dir/file',
         '/link',
         '/link-to-dir/file',
+        '/dir/file/..',
     ])
 def test_exists(testrepo, path):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
@@ -568,6 +571,7 @@ def test_exists(testrepo, path):
         '/broken-link',
         '/dir/nonexistent-file',
         '/dir/../nonexistent-file',
+        '/dir/nonexistent/..',
     ])
 def test_not_exists(testrepo, path):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
@@ -617,6 +621,8 @@ def test_iterdir_fail(testrepo, path, exception):
         ('/link-to-dir', True),
         ('/nonexistent-file', False),
         ('/broken-link', False),
+        ('/dir/nonexistent/..', False),
+        ('/dir/file/..', True),  # XXX - what to do here?
     ])
 def test_is_dir(testrepo, path, expected):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
@@ -633,6 +639,8 @@ def test_is_dir(testrepo, path, expected):
         ('/link-to-dir', False),
         ('/nonexistent-file', False),
         ('/broken-link', False),
+        ('/dir/nonexistent/..', False),
+        ('/dir/file/..', False),
     ])
 def test_is_file(testrepo, path, expected):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
