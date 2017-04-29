@@ -613,8 +613,6 @@ def readlink(self):
         return None
     if not parent.exists:
         return None
-    if self.name == '.':
-        return None
     if self.name == '..':
         return None
     if parent is self.parent:
@@ -637,8 +635,6 @@ def resolve(self, strict, seen):
 
     def _resolve():
         if self is self.parent:
-            return self
-        if self.name == '.':
             return self
         parent = resolve(self.parent, strict, seen)
         if self.name == '..':

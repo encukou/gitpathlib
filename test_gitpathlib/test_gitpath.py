@@ -493,19 +493,28 @@ def test_exotic(testrepo, meth_name, path):
     [
         ('.', '/'),
         ('/', '/'),
+        ('/.', '/'),
+        ('/./.', '/'),
         ('/dir', '/dir'),
         ('/dir/file', '/dir/file'),
+        ('/dir/.', '/dir'),
         ('/dir/..', '/'),
+        ('/dir/../.', '/'),
+        ('/dir/./..', '/'),
         ('/dir/../dir', '/dir'),
+        ('/dir/./.././dir', '/dir'),
         ('/dir/link-up', '/'),
+        ('/dir/./link-up/.', '/'),
         ('/dir/link-dot', '/dir'),
         ('/dir/link-self-rel', '/dir'),
         ('/dir/link-self-abs', '/dir'),
         ('/link', '/dir/file'),
         ('/link-to-dir', '/dir'),
+        ('/link-to-dir/.', '/dir'),
         ('/link-to-dir/file', '/dir/file'),
         ('/abs-link', '/dir/file'),
         ('/abs-link-to-dir', '/dir'),
+        ('/abs-link-to-dir/.', '/dir'),
         ('/abs-link-to-dir/file', '/dir/file'),
     ])
 def test_resolve_good(testrepo, path, expected, strict):
@@ -525,6 +534,8 @@ def test_resolve_good(testrepo, path, expected, strict):
         ('/abs-broken-link', '/nonexistent-file'),
         ('/abs-broken-link/more', '/nonexistent-file/more'),
         ('/dir/nonexistent/..', '/dir'),
+        ('/dir/nonexistent/.', '/dir/nonexistent'),
+        ('/dir/file/.', '/dir/file'),
         #('/dir/file/..', '/dir'),  # XXX - what to do here?
     ])
 def test_resolve_ugly(testrepo, path, expected, strict):
