@@ -88,6 +88,15 @@ even if they ultimately refer to the same object.
 False
 
 
+Text encoding
+-------------
+
+Since Git is used to share files across machines, the local system's
+filesystem encoding is not very useful.
+All ``GitPath`` methods that read text default to the ``utf-8`` encoding
+(but provide means to override it).
+
+
 .. _unimplemented:
 
 Unimplemented and uninteresting functions

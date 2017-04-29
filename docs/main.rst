@@ -145,6 +145,7 @@ repository information:
 .. automethod:: GitPath.exists
 .. automethod:: GitPath.glob
 .. automethod:: GitPath.read_bytes
+.. automethod:: GitPath.read_text
 
 
 .. automethod:: GitPath.is_dir

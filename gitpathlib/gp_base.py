@@ -557,6 +557,22 @@ class BaseGitPath:
         """
         return self.resolve(strict=True)._gp_read()
 
+    def read_text(self, encoding='utf-8', errors='strict'):
+        """Return the decoded contents of the pointed-to file as a string:
+
+        >>> p = GitPath('./project') / 'README'
+        >>> p.read_text()
+        'bla bla'
+
+        The optional parameters have the same meaning as in :func:`open()`,
+        but they default to ``utf-8`` and ``strict``, respectively.
+        """
+        if encoding is None:
+            encoding = 'utf-8'
+        if errors is None:
+            errors = 'strict'
+        return self.read_bytes().decode(encoding=encoding, errors=errors)
+
 
 def resolve(self, strict, seen):
     try:
