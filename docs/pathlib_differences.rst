@@ -87,6 +87,12 @@ even if they ultimately refer to the same object.
 >>> GitPath('./repo', 'HEAD:dir') == GitPath('./repo', 'HEAD', 'dir')
 False
 
+Different paths with the same root are also considered different,
+since lexical path operations on them generally yield different results.
+
+>>> GitPath('./repo', 'HEAD') == GitPath('./repo', 'HEAD', 'dir/..')
+False
+
 
 Text encoding
 -------------
