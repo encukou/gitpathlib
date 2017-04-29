@@ -5,7 +5,7 @@ import pathlib
 import pygit2
 
 from .gp_base import BaseGitPath, NotATreeError, NotABlobError
-from .util import reify, inherit_docstring
+from .util import reify, backend_cache
 
 GIT_TYPES = {
     pygit2.GIT_OBJ_COMMIT: 'commit',
@@ -14,91 +14,89 @@ GIT_TYPES = {
     pygit2.GIT_OBJ_TAG: 'tag',
 }
 
-@functools.total_ordering
-class PygitPath(BaseGitPath):
-    def _gp_init(self, repository_path, rev):
+class PygitBackend:
+    def init_root(self, path, repository_path, rev):
         repo = pygit2.Repository(repository_path)
-        self._gp_repo = repo
-        self._gp_base = repo.revparse_single(rev).peel(pygit2.Tree)
+        path._gp_repo = repo
+        path._gp_base = repo.revparse_single(rev).peel(pygit2.Tree)
 
 
-    def _gp_make_child(self, name):
-        child = super()._gp_make_child(name)
-        child._gp_repo = self._gp_repo
-        child._gp_base = self._gp_base
+    def init_child(self, parent, child):
+        child._gp_repo = parent._gp_repo
+        child._gp_base = parent._gp_base
         return child
 
 
-    @reify
-    def _gp_obj(self):
-        if self is self.parent:
-            return self._gp_base
+    @backend_cache('_gp_obj')
+    def get_obj(self, path):
+        if path is path.parent:
+            return path._gp_base
         else:
-            return self._gp_repo[self._gp_entry.id]
+            return path._gp_repo[self.get_entry(path).id]
 
 
-    @reify
-    def _gp_entry(self):
-        if self is self.parent:
+    @backend_cache('_gp_entry')
+    def get_entry(self, path):
+        if path is path.parent:
             return None
         else:
-            tree = self.parent._gp_obj.peel(pygit2.Tree)
-            return tree[self.name]
+            tree = self.get_obj(path.parent).peel(pygit2.Tree)
+            return tree[path.name]
+
+    def hex(self, path):
+        return self.get_obj(path).hex
 
 
-    @reify
-    def _gp_exists(self):
-        if self is self.parent:
+    def exists(self, path):
+        if path is path.parent:
             return True
-        elif self.parent._gp_exists:
-            tree = self.parent._gp_obj.peel(pygit2.Tree)
-            return self.name in tree
+        elif self.exists(path.parent):
+            tree = self.get_obj(path.parent).peel(pygit2.Tree)
+            return path.name in tree
         else:
             return False
 
-    @reify
-    def _gp_type(self):
-        return GIT_TYPES[self._gp_obj.type]
-
-    @reify
-    def _gp_read_link(self):
-        if (self._gp_type == 'blob' and
-                self._gp_entry.filemode == pygit2.GIT_FILEMODE_LINK):
-            return self._gp_read().decode('utf-8', errors='surrogateescape')
-        return None
-
-    def _gp_read(self):
-        if self._gp_type == 'blob':
-            return self._gp_obj.data
-        raise NotABlobError('Not a blob: {}'.format(self))
-
-    @reify
-    def _gp_dir_contents(self):
-        obj = self._gp_obj
-        if self._gp_type == 'tree':
+    def listdir(self, path):
+        obj = self.get_obj(path)
+        if obj.type == pygit2.GIT_OBJ_TREE:
             return tuple(e.name for e in obj)
         raise NotATreeError('Not a tree: {}'.format(self))
 
-    @reify
-    @inherit_docstring(BaseGitPath)
-    def hex(self):
-        self = self.resolve(strict=True)
-        return self._gp_obj.hex
+    def get_type(self, path):
+        obj = self.get_obj(path)
+        return GIT_TYPES[self.get_obj(path).type]
 
-    def _gp_lstat(self):
-        if self is self.parent:
+    def readlink(self, path):
+        if path is path.parent:
+            return None
+        entry = self.get_entry(path)
+        if (entry.type == 'blob' and
+                entry.filemode == pygit2.GIT_FILEMODE_LINK):
+            return self.read(path).decode('utf-8', errors='surrogateescape')
+        return None
+
+    def read(self, path):
+        obj = self.get_obj(path)
+        if obj.type == pygit2.GIT_OBJ_BLOB:
+            return obj.data
+        raise NotABlobError('Not a blob: {}'.format(path))
+
+    def lstat(self, path):
+        if path is path.parent:
             st_mode = pygit2.GIT_FILEMODE_TREE
         else:
-            st_mode = self._gp_entry.filemode
-        st_ino = int.from_bytes(self._gp_obj.id.raw, 'little')
+            st_mode = self.get_entry(path).filemode
+        obj = self.get_obj(path)
+        st_ino = int.from_bytes(obj.id.raw, 'little')
         st_dev = -1
         st_nlink = 1
         st_uid = 0
         st_gid = 0
-        if self._gp_type == 'blob':
-            st_size = self._gp_obj.size
-        elif self._gp_type == 'tree':
-            st_size = len(self._gp_obj)
+        print(obj, obj.hex, obj.read_raw())
+        if obj.type == pygit2.GIT_OBJ_BLOB:
+            st_size = obj.size
+        elif obj.type == pygit2.GIT_OBJ_TREE:
+            st_size = len(obj)
         else:
             st_size = 0
         st_atime = 0

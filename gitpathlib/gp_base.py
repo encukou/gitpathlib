@@ -38,6 +38,11 @@ def _return_false(self, *args, **kwargs):
     return False
 
 
+def get_default_backend():
+    from .gp_pygit import PygitBackend
+    return PygitBackend()
+
+
 @functools.total_ordering
 class BaseGitPath:
     """
@@ -65,10 +70,11 @@ class BaseGitPath:
     gitpathlib.GitPath('.../path/to/repo', '31b40fb...', 'dir', 'file')
 
     """
-    def __new__(cls, repository_path, rev='HEAD', *segments):
+    def __new__(cls, repository_path, rev='HEAD', *segments, backend=None):
         self = super(BaseGitPath, cls).__new__(cls)
+        self._gp_backend = backend = backend or get_default_backend()
         self.drive = str(pathlib.Path(repository_path).resolve())
-        self._gp_init(repository_path, rev)
+        backend.init_root(self, repository_path, rev)
         self.parent = self
         self.name = ''
         if segments:
@@ -76,17 +82,9 @@ class BaseGitPath:
         else:
             return self
 
-    def _gp_make_child(self, name):
-        child = super(BaseGitPath, type(self)).__new__(type(self))
-        child.parent = self
-        child.drive = self.drive
-        child.name = name
-        return child
-
     @property
     def hex(self):
-        raise NotImplementedError(
-            'GitPathBase.hex must be overridden in a subclass')
+        return self._gp_backend.hex(self.resolve(strict=True))
 
     @reify
     def parts(self):
@@ -243,10 +241,6 @@ class BaseGitPath:
         else:
             return self.parent._gp_root
 
-    @reify
-    def _gp_pureposixpath(self):
-        return pathlib.PurePosixPath('/', *self.parts[1:])
-
     def __hash__(self):
         return hash((BaseGitPath, eq_key(self)))
 
@@ -295,7 +289,7 @@ class BaseGitPath:
             result = self
             parts = other.parts
         for name in parts:
-            result = result._gp_make_child(name)
+            result = make_child(result, name)
         return result
 
     as_posix = NotImplemented
@@ -357,7 +351,7 @@ class BaseGitPath:
         >>> GitPath('./repo', 'HEAD', 'README').match('/README/')
         True
         """
-        return self._gp_pureposixpath.match(pattern)
+        return to_pure_posix_path(self).match(pattern)
 
     def relative_to(self, other):
         """Return a version of this path relative to the other path.
@@ -377,10 +371,10 @@ class BaseGitPath:
         if isinstance(other, BaseGitPath):
             if self.root != other.root:
                 raise ValueError('Paths have different roots')
-            ppp = other._gp_pureposixpath
+            ppp = to_pure_posix_path(other)
         else:
             ppp = pathlib.PurePosixPath('/').joinpath(other)
-        return self._gp_pureposixpath.relative_to(ppp)
+        return to_pure_posix_path(self).relative_to(ppp)
 
     def stat(self):
         """Return information about this path (similarly to os.stat()).
@@ -405,9 +399,10 @@ class BaseGitPath:
         Note in particular that timestamps are always zero.
         """
         resolved = resolve(self, True, set())
-        if not resolved._gp_exists:
+        backend = self._gp_backend
+        if not backend.exists(resolved):
             raise ObjectNotFoundError(self)
-        return resolved._gp_lstat()
+        return backend.lstat(resolved)
 
     def lstat(self):
         """Like :meth:`stat()` but, if the path points to a symbolic link,
@@ -416,7 +411,8 @@ class BaseGitPath:
         parent, sibling, link, exists = _preresolve(self, set())
         if not exists:
             raise ObjectNotFoundError(self)
-        return sibling._gp_lstat()
+        backend = self._gp_backend
+        return backend.lstat(sibling)
 
     chmod = _raise_readonly
     lchmod = _raise_readonly
@@ -474,7 +470,8 @@ class BaseGitPath:
             resolved = self.resolve(strict=True)
         except ObjectNotFoundError:
             return False
-        return resolved._gp_exists
+        backend = self._gp_backend
+        return backend.exists(resolved)
 
     def expanduser(self):
         """Return this path unchanged.
@@ -496,8 +493,10 @@ class BaseGitPath:
         gitpathlib.GitPath('.../project', 'f7707d4...', 'project')
         gitpathlib.GitPath('.../project', 'f7707d4...', 'setup.py')
         """
-        for element in self.resolve(strict=True)._gp_dir_contents:
-            yield self._gp_make_child(element)
+        backend = self._gp_backend
+        contents = backend.listdir(self.resolve(strict=True))
+        for name in contents:
+            yield make_child(self, name)
 
     def is_dir(self):
         """Whether the path points to a tree (directory)
@@ -513,7 +512,8 @@ class BaseGitPath:
             resolved = self.resolve(strict=True)
         except ObjectNotFoundError:
             return False
-        return resolved._gp_type == 'tree'
+        backend = self._gp_backend
+        return backend.get_type(resolved) == 'tree'
 
     def is_file(self):
         """Whether the path points to a blob (file)
@@ -529,7 +529,8 @@ class BaseGitPath:
             resolved = self.resolve(strict=True)
         except ObjectNotFoundError:
             return False
-        return resolved._gp_type == 'blob'
+        backend = self._gp_backend
+        return backend.get_type(resolved) == 'blob'
 
     def is_symlink(self):
         """Whether the path points to a symbolic link
@@ -609,7 +610,9 @@ class BaseGitPath:
         >>> p.read_bytes()
         b'bla bla'
         """
-        return self.resolve(strict=True)._gp_read()
+        backend = self._gp_backend
+        resolved = self.resolve(strict=True)
+        return backend.read(resolved)
 
     def read_text(self, encoding='utf-8', errors='strict'):
         """Return the decoded contents of the pointed-to file as a string:
@@ -724,7 +727,21 @@ class BaseGitPath:
         return self.hex == other_path.hex
 
 
-def _preresolve(self, seen):
+def make_child(path, name):
+    child = super(BaseGitPath, type(path)).__new__(type(path))
+    child._gp_backend = backend = path._gp_backend
+    child.parent = path
+    child.drive = path.drive
+    child.name = name
+    backend.init_child(path, child)
+    return child
+
+
+def to_pure_posix_path(path):
+    return pathlib.PurePosixPath('/', *path.parts[1:])
+
+
+def _preresolve(path, seen):
     """Return a 4-tuple useful for resolve() and readlink-like operations
 
     Arguments:
@@ -738,31 +755,32 @@ def _preresolve(self, seen):
     - Symlink target as a string, or None
     - Whether the path ("sibling") exists
     """
-    if self is self.parent:
-        return self, self, None, True
+    if path is path.parent:
+        return path, path, None, True
 
-    parent = resolve(self.parent, False, seen)
-    if self.name == '..':
-        return parent, parent.parent, None, parent._gp_exists
-    if parent is self.parent:
-        sibling = self
+    backend = path._gp_backend
+    parent = resolve(path.parent, False, seen)
+    if path.name == '..':
+        return parent, parent.parent, None, backend.exists(parent)
+    if parent is path.parent:
+        sibling = path
     else:
-        sibling = parent._gp_make_child(self.name)
-    if not parent._gp_exists or not sibling._gp_exists:
+        sibling = make_child(parent, path.name)
+    if not backend.exists(parent) or not backend.exists(sibling):
         return parent, sibling, None, False
-    return parent, sibling, sibling._gp_read_link, True
+    return parent, sibling, backend.readlink(sibling), True
 
 
-def resolve(self, strict, seen):
+def resolve(path, strict, seen):
     try:
         if strict:
-            return self._gp_resolved_strict
+            return path._gp_resolved_strict
         else:
-            return self._gp_resolved_nonstrict
+            return path._gp_resolved_nonstrict
     except AttributeError:
         pass
 
-    parent, sibling, link, exists = _preresolve(self, seen)
+    parent, sibling, link, exists = _preresolve(path, seen)
 
     if not exists:
         if strict:
@@ -770,23 +788,23 @@ def resolve(self, strict, seen):
         else:
             result = sibling
     elif link is not None:
-        if self in seen:
-            raise RuntimeError("Symlink loop from '{}'".format(self))
-        seen.add(self)
+        if path in seen:
+            raise RuntimeError("Symlink loop from '{}'".format(path))
+        seen.add(path)
         result = resolve(parent.joinpath(link), strict, seen)
-        seen.discard(self)
+        seen.discard(path)
         result
     else:
         result = sibling
 
     if strict:
-        self._gp_resolved_strict = result
+        path._gp_resolved_strict = result
     else:
-        self._gp_resolved_nonstrict = result
+        path._gp_resolved_nonstrict = result
     return result
 
 
-def glob(self, pattern, rglob=False):
+def glob(path, pattern, rglob=False):
     pattern = pathlib.PurePosixPath(pattern)
     if pattern.is_absolute():
         raise NotImplementedError('Non-relative patterns are unsupported')
@@ -796,32 +814,31 @@ def glob(self, pattern, rglob=False):
         raise ValueError('Empty pattern')
     else:
         parts = pattern.parts
-    return _glob(self, *parts, seen=set())
+    return _glob(path, *parts, seen=set())
 
 
-def _glob(self, part=None, *more_parts, seen):
+def _glob(path, part=None, *more_parts, seen):
     if part is None:
-        yield self
+        yield path
         return
     try:
-        resolved = self.resolve(strict=False)
+        resolved = path.resolve(strict=False)
     except RuntimeError:
         return
     if not resolved.exists():
         return
     if resolved in seen:
         return
-    if self.is_dir():
+    if path.is_dir():
         if part == '**':
-            yield from _glob(self, *more_parts, seen=set())
-            for child in self.iterdir():
+            yield from _glob(path, *more_parts, seen=set())
+            for child in path.iterdir():
                 yield from _glob(child, '**', *more_parts,
                                  seen=seen | {resolved})
         elif part == '..':
-            yield from _glob(self._gp_make_child('..'), *more_parts,
-                             seen=set())
+            yield from _glob(make_child(path, '..'), *more_parts, seen=set())
         else:
-            for child in self.iterdir():
+            for child in path.iterdir():
                 if fnmatch.fnmatchcase(child.name, part):
                     yield from _glob(child, *more_parts, seen=set())
 

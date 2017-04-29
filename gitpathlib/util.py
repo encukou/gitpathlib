@@ -7,9 +7,6 @@ class reify:
         self.name = self.wrapped.__name__
         functools.update_wrapper(self, wrapped)
 
-    def __set_name__(self, owner, name):
-        self.name = name
-
     def __get__(self, obj, owner=None):
         if obj is None:
             return self
@@ -18,9 +15,15 @@ class reify:
         return val
 
 
-
-def inherit_docstring(base):
+def backend_cache(name):
     def _decorator(func):
-        func.__doc__ = getattr(base, func.__name__).__doc__
-        return func
+        @functools.wraps(func)
+        def wrapped(self, inst):
+            try:
+                return getattr(inst, name)
+            except AttributeError:
+                value = func(self, inst)
+            setattr(inst, name, value)
+            return value
+        return wrapped
     return _decorator

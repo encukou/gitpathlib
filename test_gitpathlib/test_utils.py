@@ -27,22 +27,39 @@ def test_reify():
     assert memo == ['called', 'called']
 
 
-def test_inherit_docstring():
-    class Base:
-        def a(self):
-            """A docstring"""
+def test_backend_cache():
+    memo = []
 
-        def b(self):
-            pass
+    class Obj:
+        pass
 
-    class Derived(Base):
-        @util.inherit_docstring(Base)
-        def a(self):
-            """This is lost"""
+    class C:
+        @util.backend_cache('attr_name')
+        def get_attr(self, inst):
+            memo.append('called')
+            return 123
 
-        @util.inherit_docstring(Base)
-        def b(self):
-            """This is lost"""
+    obj = Obj()
+    c = C()
+    assert memo == []
+    assert not hasattr(obj, 'attr_name')
 
-    assert Derived.a.__doc__ == 'A docstring'
-    assert Derived.b.__doc__ == None
+    assert c.get_attr(obj) == 123
+    assert memo == ['called']
+    assert obj.attr_name == 123
+
+    assert c.get_attr(obj) == 123
+    assert memo == ['called']
+
+    del obj.attr_name
+    assert memo == ['called']
+    assert not hasattr(obj, 'attr_name')
+
+    assert c.get_attr(obj) == 123
+    assert obj.attr_name == 123
+    assert memo == ['called', 'called']
+
+    obj.attr_name = 321
+    assert obj.attr_name == 321
+    assert c.get_attr(obj) == 321
+    assert memo == ['called', 'called']

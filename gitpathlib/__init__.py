@@ -1,10 +1,9 @@
 from gitpathlib.gp_base import BaseGitPath, GitPathError, ReadOnlyError
 from gitpathlib.gp_base import ObjectNotFoundError, NotATreeError
 from gitpathlib.gp_base import NotABlobError
-from gitpathlib.gp_pygit import PygitPath
 
 
-class GitPath(PygitPath):
+class GitPath(BaseGitPath):
     __doc__ = BaseGitPath.__doc__
 
 
