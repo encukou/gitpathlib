@@ -72,17 +72,22 @@ class BaseGitPath:
     gitpathlib.GitPath('.../path/to/repo', '31b40fb...', 'dir', 'file')
 
     """
-    def __new__(cls, repository_path, rev='HEAD', *segments, backend=None):
-        self = super(BaseGitPath, cls).__new__(cls)
-        self._gp_backend = backend = backend or get_default_backend()
-        self.drive = str(pathlib.Path(repository_path).resolve())
-        backend.init_root(self, repository_path, rev)
-        self.parent = self
-        self.name = ''
+    def __init__(self, repository_path, rev='HEAD', *segments, backend=None):
+        segments = pathlib.PurePosixPath(*segments).parts
+        if segments[:1] == ('/', ):
+            segments = segments[1:]
         if segments:
-            return self.joinpath(*segments)
+            parent = type(self)(repository_path=repository_path, rev=rev,
+                                backend=backend)
+            for segment in segments[:-1]:
+                parent = make_child(parent, segment)
+            init_child(parent, self, segments[-1])
         else:
-            return self
+            self._gp_backend = backend = backend or get_default_backend()
+            self.drive = str(pathlib.Path(repository_path).resolve())
+            self.parent = self
+            self.name = ''
+            backend.init_root(self, repository_path, rev)
 
     @property
     def hex(self):
@@ -745,13 +750,16 @@ class BaseGitPath:
 
 
 def make_child(path, name):
-    child = super(BaseGitPath, type(path)).__new__(type(path))
-    child._gp_backend = backend = path._gp_backend
-    child.parent = path
-    child.drive = path.drive
-    child.name = name
-    backend.init_child(path, child)
+    child = path.__new__(type(path))
+    init_child(path, child, name)
     return child
+
+def init_child(parent, child, name):
+    child._gp_backend = backend = parent._gp_backend
+    child.parent = parent
+    child.drive = parent.drive
+    child.name = name
+    backend.init_child(parent, child)
 
 
 def to_pure_posix_path(path):
