@@ -731,25 +731,23 @@ def resolve(self, strict, seen):
     except AttributeError:
         pass
 
-    def _resolve():
-        parent, sibling, link, exists = _preresolve(self, seen)
+    parent, sibling, link, exists = _preresolve(self, seen)
 
-        if not exists:
-            if strict:
-                raise ObjectNotFoundError(str(sibling))
-            else:
-                return sibling
+    if not exists:
+        if strict:
+            raise ObjectNotFoundError(str(sibling))
+        else:
+            result = sibling
+    elif link is not None:
+        if self in seen:
+            raise RuntimeError("Symlink loop from '{}'".format(self))
+        seen.add(self)
+        result = resolve(parent.joinpath(link), strict, seen)
+        seen.discard(self)
+        result
+    else:
+        result = sibling
 
-        if link is not None:
-            if self in seen:
-                raise RuntimeError("Symlink loop from '{}'".format(self))
-            seen.add(self)
-            result = resolve(parent.joinpath(link), strict, seen)
-            seen.discard(self)
-            return result
-        return sibling
-
-    result = _resolve()
     if strict:
         self._gp_resolved_strict = result
     else:
