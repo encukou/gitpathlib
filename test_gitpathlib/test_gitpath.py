@@ -15,8 +15,8 @@ from gitpathlib.gp_pygit import PygitBackend
 from gitpathlib.gp_subprocess import SubprocessBackend
 
 
-@pytest.fixture
-def testrepo(tmpdir):
+@pytest.fixture(scope='session')
+def testrepo(tmpdir_factory):
     contents = yaml.safe_load("""
         - tree:
             same:
@@ -70,7 +70,7 @@ def testrepo(tmpdir):
             loop-link-b: [link, loop-link-a]
             executable: [executable, '#!/bin/sh']
     """)
-    path = os.path.join(str(tmpdir), 'testrepo')
+    path = os.path.join(str(tmpdir_factory.mktemp('repos')), 'testrepo')
     testutil.make_repo(path, contents)
     return pygit2.Repository(path)
 
@@ -97,9 +97,9 @@ def get_path(request, testrepo):
                 assertion(path)
 
 @pytest.fixture
-def part0(testrepo, tmpdir):
+def part0(testrepo):
     tree = testrepo.head.peel(pygit2.Tree).hex
-    return os.path.join(str(tmpdir), 'testrepo') + ':' + tree
+    return os.path.realpath(testrepo.path) + ':' + tree
 
 @pytest.fixture
 def cloned_repo(tmpdir, testrepo):
@@ -219,9 +219,9 @@ def test_no_open(testrepo, get_path):
         open(get_path('HEAD', 'dir', 'file'))
 
 
-def test_str_and_repr(testrepo, get_path, tmpdir):
+def test_str_and_repr(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
-    repo = os.path.join(str(tmpdir), 'testrepo')
+    repo = os.path.realpath(testrepo.path)
     hex = testrepo.revparse_single('HEAD:').hex
     expected = "gitpathlib.GitPath('{repo}', '{hex}', 'dir', 'file')".format(
         repo=repo, hex=hex)
@@ -235,9 +235,9 @@ def test_no_bytes(get_path):
         bytes(path)
 
 
-def test_drive(get_path, tmpdir):
+def test_drive(get_path, testrepo):
     path = get_path('HEAD', 'dir', 'file')
-    assert path.drive == os.path.join(str(tmpdir), 'testrepo')
+    assert path.drive == os.path.realpath(testrepo.path)
 
 
 def test_root(testrepo, get_path):
@@ -245,9 +245,9 @@ def test_root(testrepo, get_path):
     assert path.root == testrepo.revparse_single('HEAD:').hex
 
 
-def test_anchor(testrepo, get_path, tmpdir):
+def test_anchor(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
-    repodir = os.path.join(str(tmpdir), 'testrepo')
+    repodir = os.path.realpath(testrepo.path)
     tree = testrepo.revparse_single('HEAD:').hex
     assert path.anchor == repodir + ':' + tree
 
