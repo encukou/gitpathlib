@@ -32,9 +32,6 @@ def _raise_readonly(self, *args, **kwargs):
     raise ReadOnlyError('Cannot modify a GitPath')
 
 
-UNRESOLVED = object()
-
-
 @functools.total_ordering
 class BaseGitPath:
     """
@@ -438,7 +435,7 @@ class BaseGitPath:
         If an infinite loop is encountered along the resolution path,
         :class:`RuntimeError` is raised.
         """
-        return resolve(self, strict, {})
+        return resolve(self, strict, set())
 
     def exists(self):
         """Whether the path points to an existing file or directory:
@@ -619,13 +616,10 @@ def resolve(self, strict, seen):
         link = sibling._gp_read_link
         if link is not None:
             if self in seen:
-                result = seen[self]
-                if result == UNRESOLVED:
-                    raise RuntimeError("Symlink loop from '{}'".format(self))
-                return result
-            seen[self] = UNRESOLVED
+                raise RuntimeError("Symlink loop from '{}'".format(self))
+            seen.add(self)
             result = resolve(parent.joinpath(link), strict, seen)
-            seen[self] = result
+            seen.discard(self)
             return result
         return sibling
 
