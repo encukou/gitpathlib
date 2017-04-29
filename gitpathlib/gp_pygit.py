@@ -45,17 +45,12 @@ class PygitBackend:
 
         return get_obj(path).hex
 
-    def exists(self, path):
-        """Return True if the path identifies an existing object.
+    def has_entry(self, path, name):
+        """Return True if *path* is a tree that has an entry named *name*.
         """
 
-        if path is path.parent:
-            return True
-        elif self.exists(path.parent):
-            tree = get_obj(path.parent).peel(pygit2.Tree)
-            return path.name in tree
-        else:
-            return False
+        tree = get_obj(path).peel(pygit2.Tree)
+        return name in tree
 
     def listdir(self, path):
         """Return a tuple of the contents of tree, as strings.
@@ -77,20 +72,6 @@ class PygitBackend:
 
         obj = get_obj(path)
         return GIT_TYPES[get_obj(path).type]
-
-    def readlink(self, path):
-        """Return what a symlink points to, as a string.
-
-        If the path does not identify a link, return None.
-        """
-
-        if path is path.parent:
-            return None
-        entry = get_entry(path)
-        if (entry.type == 'blob' and
-                entry.filemode == pygit2.GIT_FILEMODE_LINK):
-            return self.read(path).decode('utf-8', errors='surrogateescape')
-        return None
 
     def read(self, path):
         """Return the contents of a blob, as a bytestring.

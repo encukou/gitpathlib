@@ -46,6 +46,9 @@ def get_default_backend():
     return PygitBackend()
 
 
+GIT_MODE_LINK = 0o120000
+
+
 @functools.total_ordering
 class BaseGitPath:
     """
@@ -486,11 +489,10 @@ class BaseGitPath:
             the symlink *points to* an existing file or directory.
         """
         try:
-            resolved = self.resolve(strict=True)
+            path = resolve(self, True)
         except ObjectNotFoundError:
             return False
-        backend = self._gp_backend
-        return backend.exists(resolved)
+        return get_info(path).exists
 
     def expanduser(self):
         """Return this path unchanged.
@@ -764,20 +766,33 @@ def to_pure_posix_path(path):
 
 
 def resolve(path, strict):
-    seen = set()
-    backend = path._gp_backend
-    while True:
-        info = get_info(path)
-        if strict and not info.exists:
-            raise ObjectNotFoundError(path)
-        path = info.canonical
-        if info.link_target:
-            if path in seen:
-                raise RuntimeError("Symlink loop from '{}'".format(path))
-            seen.add(path)
-            path = path.parent.joinpath(info.link_target)
-        else:
-            return path
+    exists, resolved = _resolve(path, set())
+    if strict and not exists:
+        raise ObjectNotFoundError(path)
+    return resolved
+
+def _resolve(path, seen):
+    try:
+        return path._gp_resolved
+    except AttributeError:
+        pass
+
+    info = get_info(path)
+    exists = info.exists
+    canonical_path = info.canonical
+    if info.link_target:
+        if canonical_path in seen:
+            raise RuntimeError("Symlink loop from '{}'".format(path))
+        seen.add(canonical_path)
+        target = canonical_path.parent.joinpath(info.link_target)
+        other_exists, result = _resolve(target, seen)
+        if not other_exists:
+            exists = False
+    else:
+        result = canonical_path
+
+    path._gp_resolved = exists, result
+    return exists, result
 
 
 PathInfo = collections.namedtuple(
@@ -799,7 +814,7 @@ def _get_info(path):
         return PathInfo(True, path, None)
 
     parent = path.parent
-    parent_info = _get_info(parent)
+    parent_info = get_info(parent)
     is_canonical = parent_info.canonical is parent
     backend = path._gp_backend
     if not is_canonical:
@@ -815,9 +830,13 @@ def _get_info(path):
         sibling = make_child(parent, path.name)
     if path.name == '..':
         return PathInfo(parent_info.exists, parent.parent, None)
-    if not parent_info.exists or not backend.exists(sibling):
+    if not parent_info.exists or not backend.has_entry(parent, path.name):
         return PathInfo(False, sibling, None)
-    return PathInfo(True, sibling, backend.readlink(sibling))
+    if backend.get_mode(sibling) == GIT_MODE_LINK:
+        link_target = backend.read(sibling).decode('utf-8', 'surrogateescape')
+    else:
+        link_target = None
+    return PathInfo(True, sibling, link_target)
 
 
 def glob(path, pattern, rglob=False):
