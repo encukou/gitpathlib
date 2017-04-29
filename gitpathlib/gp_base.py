@@ -1,3 +1,4 @@
+import collections
 import functools
 import binascii
 import pathlib
@@ -405,36 +406,32 @@ class BaseGitPath:
 
         Note in particular that timestamps are always zero.
         """
-        resolved = resolve(self, True, set())
-        backend = self._gp_backend
-        if not backend.exists(resolved):
-            raise ObjectNotFoundError(self)
-        return resolved.lstat()
+        path = resolve(self, False)
+        return path.lstat()
 
     def lstat(self):
         """Like :meth:`stat()` but, if the path points to a symbolic link,
         return the symbolic link’s information rather than its target’s.
         """
-        parent, sibling, link, exists = _preresolve(self, set())
-        if not exists:
+        info = get_info(self)
+        if not info.exists:
             raise ObjectNotFoundError(self)
-        backend = self._gp_backend
-        oid_hex = backend.hex(sibling)
+        path = info.canonical
+        backend = path._gp_backend
+        oid_hex = backend.hex(path)
         inode = int.from_bytes(binascii.unhexlify(oid_hex), 'little')
         return os.stat_result([
-            backend.get_mode(sibling),  # st_mode
+            backend.get_mode(path),  # st_mode
             inode,  # st_ino
             -1,  # st_dev
             1,  # st_nlink
             0,  # st_uid
             0,  # st_gid
-            backend.get_size(sibling),  # st_size
+            backend.get_size(path),  # st_size
             0,  # st_atime
             0,  # st_mtime
             0,  # st_ctime
         ])
-
-        return backend.lstat(sibling)
 
     chmod = _raise_readonly
     lchmod = _raise_readonly
@@ -471,7 +468,7 @@ class BaseGitPath:
         If an infinite loop is encountered along the resolution path,
         :class:`RuntimeError` is raised.
         """
-        return resolve(self, strict, set())
+        return resolve(self, strict)
 
     def exists(self):
         """Whether the path points to an existing file or directory:
@@ -560,8 +557,8 @@ class BaseGitPath:
         ``False`` is also returned if the path doesn’t exist; other errors
         are propagated.
         """
-        parent, sibling, link, exists = _preresolve(self, set())
-        return link is not None
+        info = get_info(self)
+        return info.link_target is not None
 
     is_socket = _return_false
     is_fifo = _return_false
@@ -766,67 +763,61 @@ def to_pure_posix_path(path):
     return pathlib.PurePosixPath('/', *path.parts[1:])
 
 
-def _preresolve(path, seen):
-    """Return a 4-tuple useful for resolve() and readlink-like operations
-
-    Arguments:
-        self: The path in question.
-        seen: Set of unresolved sylinks seen so far, used for detecting symlink
-              loops. Pass an empty set() when calling this function externally.
-
-    The return value is:
-    - Resolved parent path
-    - "Sibling" -- resolved path (usually a child of the resolved parent)
-    - Symlink target as a string, or None
-    - Whether the path ("sibling") exists
-    """
-    if path is path.parent:
-        return path, path, None, True
-
+def resolve(path, strict):
+    seen = set()
     backend = path._gp_backend
-    parent = resolve(path.parent, False, seen)
-    if path.name == '..':
-        return parent, parent.parent, None, backend.exists(parent)
+    while True:
+        info = get_info(path)
+        if strict and not info.exists:
+            raise ObjectNotFoundError(path)
+        path = info.canonical
+        if info.link_target:
+            if path in seen:
+                raise RuntimeError("Symlink loop from '{}'".format(path))
+            seen.add(path)
+            path = path.parent.joinpath(info.link_target)
+        else:
+            return path
+
+
+PathInfo = collections.namedtuple(
+    'PathInfo',
+    ['exists', 'canonical', 'link_target'])
+
+
+def get_info(path):
+    try:
+        return path._gp_info
+    except AttributeError:
+        result = _get_info(path)
+        path._gp_info = result
+        return result
+
+
+def _get_info(path):
+    if path.parent is path:
+        return PathInfo(True, path, None)
+
+    parent = path.parent
+    parent_info = _get_info(parent)
+    is_canonical = parent_info.canonical is parent
+    backend = path._gp_backend
+    if not is_canonical:
+        parent = resolve(parent_info.canonical, False)
+        parent_info = get_info(parent)
+    if parent_info.link_target:
+        is_canonical = False
+        parent = resolve(parent, False)
+        parent_info = get_info(parent)
     if parent is path.parent:
         sibling = path
     else:
         sibling = make_child(parent, path.name)
-    if not backend.exists(parent) or not backend.exists(sibling):
-        return parent, sibling, None, False
-    return parent, sibling, backend.readlink(sibling), True
-
-
-def resolve(path, strict, seen):
-    try:
-        if strict:
-            return path._gp_resolved_strict
-        else:
-            return path._gp_resolved_nonstrict
-    except AttributeError:
-        pass
-
-    parent, sibling, link, exists = _preresolve(path, seen)
-
-    if not exists:
-        if strict:
-            raise ObjectNotFoundError(str(sibling))
-        else:
-            result = sibling
-    elif link is not None:
-        if path in seen:
-            raise RuntimeError("Symlink loop from '{}'".format(path))
-        seen.add(path)
-        result = resolve(parent.joinpath(link), strict, seen)
-        seen.discard(path)
-        result
-    else:
-        result = sibling
-
-    if strict:
-        path._gp_resolved_strict = result
-    else:
-        path._gp_resolved_nonstrict = result
-    return result
+    if path.name == '..':
+        return PathInfo(parent_info.exists, parent.parent, None)
+    if not parent_info.exists or not backend.exists(sibling):
+        return PathInfo(False, sibling, None)
+    return PathInfo(True, sibling, backend.readlink(sibling))
 
 
 def glob(path, pattern, rglob=False):

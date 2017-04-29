@@ -446,9 +446,9 @@ def test_home(testrepo):
     assert path.home() == Path.home()
 
 
-def check_stat(meth, mode, expected_hex, size):
-    if mode is None:
-        with pytest.raises(gitpathlib.ObjectNotFoundError):
+def check_stat(meth, mode, expected_hex, size, exception):
+    if exception:
+        with pytest.raises(exception):
             meth()
         return
     stat = meth()
@@ -466,55 +466,59 @@ def check_stat(meth, mode, expected_hex, size):
     assert stat.st_ctime == stat[9] == 0
 
 @pytest.mark.parametrize(
-    ['path', 'mode', 'size'],
-    [
-        ('/', 0o40000, 12),
-        ('/dir', 0o40000, 6),
-        ('/dir/file', 0o100644, 32),
-        ('/executable', 0o100755, 9),
-
-        ('/link', 0o100644, 32),
-        ('/link-to-dir', 0o40000, 6),
-
-        ('/broken-link', None, None),
-
-        ('/nonexistent-file', None, None),
-    ]
-)
-def test_stat(testrepo, path, mode, size):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
-    expected_hex = testrepo[path.hex].id.raw if mode else None
-    check_stat(path.stat, mode, expected_hex, size)
-
-@pytest.mark.parametrize(
-    ['path', 'mode', 'size', 'expected_hex'],
+    ['path', 'mode', 'size', 'exception'],
     [
         ('/', 0o40000, 12, None),
         ('/dir', 0o40000, 6, None),
         ('/dir/file', 0o100644, 32, None),
         ('/executable', 0o100755, 9, None),
 
-        ('/link', 0o120000, 8,
-         'dea97c3520a755e4db5694d743aa8599511bbe9c'),
-        ('/link-to-dir', 0o120000, 3,
-         '87245193225f8ff56488ceab0dcd11467fe098d0'),
+        ('/link', 0o100644, 32, None),
+        ('/link-to-dir', 0o40000, 6, None),
 
-        ('/broken-link', 0o120000, 16,
-         'b3394ad552da18d1b3d6a5c7e603520408d35425'),
+        ('/broken-link', None, None, gitpathlib.ObjectNotFoundError),
+        ('/loop-link-a', None, None, RuntimeError),
 
-        ('/nonexistent-file', None, None, None),
+        ('/nonexistent-file', None, None, gitpathlib.ObjectNotFoundError),
     ]
 )
-def test_lstat(testrepo, path, mode, size, expected_hex):
+def test_stat(testrepo, path, mode, size, exception):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
-    if mode:
+    expected_hex = None if exception else testrepo[path.hex].id.raw
+    check_stat(path.stat, mode, expected_hex, size, exception)
+
+@pytest.mark.parametrize(
+    ['path', 'mode', 'size', 'exception', 'expected_hex'],
+    [
+        ('/', 0o40000, 12, None, None),
+        ('/dir', 0o40000, 6, None, None),
+        ('/dir/file', 0o100644, 32, None, None),
+        ('/executable', 0o100755, 9, None, None),
+
+        ('/link', 0o120000, 8, None,
+         'dea97c3520a755e4db5694d743aa8599511bbe9c'),
+        ('/link-to-dir', 0o120000, 3, None,
+         '87245193225f8ff56488ceab0dcd11467fe098d0'),
+
+        ('/broken-link', 0o120000, 16, None,
+         'b3394ad552da18d1b3d6a5c7e603520408d35425'),
+        ('/loop-link-b', 0o120000, 11, None,
+         '2b5652f1154a7aa2f62054230d116332d959d009'),
+
+        ('/nonexistent-file', None, None, gitpathlib.ObjectNotFoundError,
+         None),
+    ]
+)
+def test_lstat(testrepo, path, mode, size, exception, expected_hex):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    if exception:
+        expected_hex = None
+    else:
         if expected_hex:
             expected_hex = binascii.unhexlify(expected_hex)
         else:
             expected_hex = testrepo[path.hex].id.raw
-    else:
-        expected_hex = None
-    check_stat(path.lstat, mode, expected_hex, size)
+    check_stat(path.lstat, mode, expected_hex, size, exception)
 
 
 @pytest.mark.parametrize(
