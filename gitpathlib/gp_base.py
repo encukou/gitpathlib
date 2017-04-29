@@ -80,6 +80,7 @@ class BaseGitPath:
         segments = pathlib.PurePosixPath(*segments).parts
         if segments[:1] == ('/', ):
             segments = segments[1:]
+        repository_path = os.path.realpath(repository_path)
         if segments:
             parent = type(self)(repository_path=repository_path, rev=rev,
                                 backend=backend)
@@ -423,6 +424,10 @@ class BaseGitPath:
         backend = path._gp_backend
         oid_hex = backend.hex(path)
         inode = int.from_bytes(binascii.unhexlify(oid_hex), 'little')
+        if backend.get_type(self) == 'blob':
+            st_size = backend.get_blob_size(path)
+        else:
+            st_size = len(backend.listdir(path))
         return os.stat_result([
             backend.get_mode(path),  # st_mode
             inode,  # st_ino
@@ -430,7 +435,7 @@ class BaseGitPath:
             1,  # st_nlink
             0,  # st_uid
             0,  # st_gid
-            backend.get_size(path),  # st_size
+            st_size,  # st_size
             0,  # st_atime
             0,  # st_mtime
             0,  # st_ctime
@@ -531,9 +536,8 @@ class BaseGitPath:
         ``False`` is also returned if the path doesn’t exist or is a broken
         link; other errors are propagated.
         """
-        try:
-            resolved = self.resolve(strict=True)
-        except ObjectNotFoundError:
+        exists, resolved = _resolve(self, seen=set())
+        if not exists:
             return False
         backend = self._gp_backend
         return backend.get_type(resolved) == 'tree'

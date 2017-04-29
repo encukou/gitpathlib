@@ -17,81 +17,39 @@ class PygitBackend:
     """
 
     def init_root(self, path, repository_path, rev):
-        """Initialize backend-specific information for a root path
-
-        The *repository_path* and *rev* arguments are the same as for
-        :class:`GitPath`.
-        """
-
         repo = pygit2.Repository(repository_path)
         path._gp_repo = repo
         path._gp_base = repo.revparse_single(rev).peel(pygit2.Tree)
 
     def init_child(self, parent, child):
-        """Initialize backend-specific information for a child path
-
-        The *parent* is the parent path; *child* is the path to initialize.
-        When this is called, the child's name is already stored in its
-        ``name`` attribute.
-        """
-
         child._gp_repo = parent._gp_repo
         child._gp_base = parent._gp_base
         return child
 
     def hex(self, path):
-        """Return the hexadecimal Object ID corresponding to this path.
-        """
-
         return get_obj(path).hex
 
     def has_entry(self, path, name):
-        """Return True if *path* is a tree that has an entry named *name*.
-        """
-
         tree = get_obj(path).peel(pygit2.Tree)
         return name in tree
 
     def listdir(self, path):
-        """Return contents of a tree, as tuple of strings.
-        """
-
         obj = get_obj(path)
         return tuple(e.name for e in obj)
 
     def get_type(self, path):
-        """Return the type of the object identified by this path.
-
-        Possible return values are ``'commit'``, ``'tree'``, ``'blob'``, and
-        ``'tag'``.
-        """
-
         obj = get_obj(path)
         return GIT_TYPES[get_obj(path).type]
 
     def read(self, path):
-        """Return the contents of a blob, as a bytestring.
-        """
-
         obj = get_obj(path)
         return obj.data
 
-    def get_size(self, path):
-        """Return the length of a blob or number of entries in a tree.
-        """
-
+    def get_blob_size(self, path):
         obj = get_obj(path)
-        if obj.type == pygit2.GIT_OBJ_BLOB:
-            return obj.size
-        elif obj.type == pygit2.GIT_OBJ_TREE:
-            return len(obj)
-        else:
-            return 0
+        return obj.size
 
     def get_mode(self, path):
-        """Return the file mode of a blob.
-        """
-
         if path is path.parent:
             return pygit2.GIT_FILEMODE_TREE
         else:

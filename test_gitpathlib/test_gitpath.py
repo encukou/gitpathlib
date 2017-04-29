@@ -79,12 +79,21 @@ def get_path(request, testrepo):
         backend = PygitBackend()
     elif request.param == '/usr/bin/git':
         backend = SubprocessBackend()
+        backend._assertions = {}
     else:
         raise ValueError(request.param)
     def _get_path(*args, **kwargs):
         kwargs.setdefault('backend', backend)
         return gitpathlib.GitPath(testrepo.path, *args, **kwargs)
-    return _get_path
+    yield _get_path
+
+    if request.param == '/usr/bin/git':
+        for assertion, paths in backend._assertions.items():
+            print('Assertion:', assertion.__name__)
+            for func, path in set(paths):
+                print('   ', path.root[:7], path.parts[1:],
+                      'in', func.__name__)
+                assertion(path)
 
 @pytest.fixture
 def part0(testrepo, tmpdir):
