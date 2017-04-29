@@ -94,10 +94,6 @@ class BaseGitPath:
             self.name = ''
             backend.init_root(self, repository_path, rev)
 
-    @property
-    def hex(self):
-        return self._gp_backend.hex(self.resolve(strict=True))
-
     @reify
     def parts(self):
         """A tuple giving access to the path’s various components
@@ -134,7 +130,7 @@ class BaseGitPath:
         >>> p.root
         '31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
         """
-        return self._gp_root.hex
+        return hex_oid(self._gp_root)
 
     @reify
     def anchor(self):
@@ -753,7 +749,9 @@ class BaseGitPath:
         """
         if not isinstance(other_path, BaseGitPath):
             return False
-        return self.hex == other_path.hex
+        path1 = resolve(self, strict=True)
+        path2 = resolve(other_path, strict=True)
+        return hex_oid(path1) == hex_oid(path2)
 
 
 def make_child(path, name):
@@ -895,3 +893,14 @@ def good_part_name(name):
         return False
     else:
         return True
+
+
+def hex_oid(path):
+    """Return the object ID of the object a the path refers to.
+
+    The object ID (hash) is returned as a hexadecimal string.
+    """
+    info = get_info(path)
+    if not info.exists:
+        raise ObjectNotFoundError(path)
+    return path._gp_backend.hex(info.canonical)

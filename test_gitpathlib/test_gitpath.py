@@ -9,6 +9,7 @@ import yaml
 
 import gitpathlib
 from gitpathlib import testutil
+from gitpathlib import hex_oid
 
 from gitpathlib.gp_pygit import PygitBackend
 from gitpathlib.gp_subprocess import SubprocessBackend
@@ -108,18 +109,18 @@ def cloned_repo(tmpdir, testrepo):
 
 def test_head(testrepo, get_path):
     path = get_path()
-    assert path.hex == testrepo.head.peel(pygit2.Tree).hex
+    assert hex_oid(path) == testrepo.head.peel(pygit2.Tree).hex
 
 
 def test_parent(testrepo, get_path):
     path = get_path('HEAD^')
     parent = testrepo.head.peel(pygit2.Commit).parents[0]
-    assert path.hex == parent.peel(pygit2.Tree).hex
+    assert hex_oid(path) == parent.peel(pygit2.Tree).hex
 
 
 def test_components(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_parts_empty(get_path, part0):
@@ -185,32 +186,32 @@ def test_ne_different_roots(get_path):
 
 def test_slash(testrepo, get_path):
     path = get_path() / 'dir'
-    assert path.hex == testrepo.revparse_single('HEAD:dir').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir').hex
 
 
 def test_slash_multiple(testrepo, get_path):
     path = get_path() / 'dir' / 'file'
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_slash_combined(testrepo, get_path):
     path = get_path() / 'dir/file'
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_slash_pathlib(testrepo, get_path):
     path = get_path() / Path('dir/file')
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_slash_absolute_str(testrepo, get_path):
     path = get_path('HEAD', 'dir') / '/dir/file'
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_slash_absolute_path(testrepo, get_path):
     path = get_path('HEAD', 'dir') / Path('/dir/file')
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_no_open(testrepo, get_path):
@@ -339,32 +340,32 @@ def test_is_reserved(get_path):
 
 def test_joinpath(testrepo, get_path):
     path = get_path().joinpath('dir')
-    assert path.hex == testrepo.revparse_single('HEAD:dir').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir').hex
 
 
 def test_joinpath_multiple(testrepo, get_path):
     path = get_path().joinpath('dir', 'file')
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_joinpath_combined(testrepo, get_path):
     path = get_path().joinpath('dir/file')
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_joinpath_pathlib(testrepo, get_path):
     path = get_path().joinpath(Path('dir/file'))
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_joinpath_absolute_str(testrepo, get_path):
     path = get_path('HEAD', 'dir').joinpath('/dir/file')
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 def test_joinpath_absolute_path(testrepo, get_path):
     path = get_path('HEAD', 'dir').joinpath(Path('/dir/file'))
-    assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
 
 
 @pytest.mark.parametrize(
@@ -491,25 +492,35 @@ def check_stat(meth, mode, expected_hex, size, exception):
     assert stat.st_ctime == stat[9] == 0
 
 @pytest.mark.parametrize(
-    ['path', 'mode', 'size', 'exception'],
+    ['path', 'mode', 'size', 'exception', 'expected_hex'],
     [
-        ('/', 0o40000, 12, None),
-        ('/dir', 0o40000, 6, None),
-        ('/dir/file', 0o100644, 32, None),
-        ('/executable', 0o100755, 9, None),
+        ('/', 0o40000, 12, None, None),
+        ('/dir', 0o40000, 6, None, None),
+        ('/dir/file', 0o100644, 32, None,
+            '97bb8d0a5bebd62bdeb53110b239a87d9942d2aa'),
+        ('/executable', 0o100755, 9, None, None),
 
-        ('/link', 0o100644, 32, None),
-        ('/link-to-dir', 0o40000, 6, None),
+        ('/link', 0o100644, 32, None,
+            '97bb8d0a5bebd62bdeb53110b239a87d9942d2aa'),
+        ('/link-to-dir', 0o40000, 6, None,
+            'cafc64d830ca1d2f3dcbf23af25a4e03167b538f'),
 
-        ('/broken-link', None, None, gitpathlib.ObjectNotFoundError),
-        ('/loop-link-a', None, None, RuntimeError),
+        ('/broken-link', None, None, gitpathlib.ObjectNotFoundError, None),
+        ('/loop-link-a', None, None, RuntimeError, None),
 
-        ('/nonexistent-file', None, None, gitpathlib.ObjectNotFoundError),
+        ('/nonexistent-file', None, None,
+         gitpathlib.ObjectNotFoundError, None),
     ]
 )
-def test_stat(testrepo, get_path, path, mode, size, exception):
+def test_stat(testrepo, get_path, path, mode, size, exception, expected_hex):
     path = get_path('HEAD', path)
-    expected_hex = None if exception else testrepo[path.hex].id.raw
+    if exception:
+        expected_hex = None
+    else:
+        if expected_hex:
+            expected_hex = binascii.unhexlify(expected_hex)
+        else:
+            expected_hex = testrepo[hex_oid(path)].id.raw
     check_stat(path.stat, mode, expected_hex, size, exception)
 
 @pytest.mark.parametrize(
@@ -517,7 +528,8 @@ def test_stat(testrepo, get_path, path, mode, size, exception):
     [
         ('/', 0o40000, 12, None, None),
         ('/dir', 0o40000, 6, None, None),
-        ('/dir/file', 0o100644, 32, None, None),
+        ('/dir/file', 0o100644, 32, None,
+            '97bb8d0a5bebd62bdeb53110b239a87d9942d2aa'),
         ('/executable', 0o100755, 9, None, None),
 
         ('/link', 0o120000, 8, None,
@@ -542,7 +554,7 @@ def test_lstat(testrepo, get_path, path, mode, size, exception, expected_hex):
         if expected_hex:
             expected_hex = binascii.unhexlify(expected_hex)
         else:
-            expected_hex = testrepo[path.hex].id.raw
+            expected_hex = testrepo[hex_oid(path)].id.raw
     check_stat(path.lstat, mode, expected_hex, size, exception)
 
 

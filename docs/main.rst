@@ -162,6 +162,12 @@ are listed in :ref:`unimplemented`.
 .. _pathlib: https://docs.python.org/3/library/pathlib.html
 
 
+Helpers
+-------
+
+.. autofunction:: hex_oid
+
+
 Exceptions
 ----------
 
