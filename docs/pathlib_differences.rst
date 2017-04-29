@@ -152,6 +152,7 @@ Git trees are immutable, so the following methods only
 raise :exc:`ReadOnlyError`:
 
 .. method:: GitPath.chmod()
+.. method:: GitPath.lchmod()
 .. method:: GitPath.mkdir()
 .. method:: GitPath.rename()
 .. method:: GitPath.replace()

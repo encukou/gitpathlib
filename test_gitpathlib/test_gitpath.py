@@ -460,7 +460,7 @@ def test_stat_root(testrepo, path, mode, size, g_type):
 @pytest.mark.parametrize(
     'meth_name',
     ['chmod', 'mkdir', 'rename', 'replace', 'rmdir', 'symlink_to', 'touch',
-     'unlink', 'write_bytes', 'write_text'])
+     'unlink', 'write_bytes', 'write_text', 'lchmod'])
 def test_mutate(testrepo, meth_name):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD')
     meth = getattr(path, meth_name)

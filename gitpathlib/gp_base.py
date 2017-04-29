@@ -407,6 +407,7 @@ class BaseGitPath:
             'GitPathBase.stat must be overridden in subclass')
 
     chmod = _raise_readonly
+    lchmod = _raise_readonly
     mkdir = _raise_readonly
     rename = _raise_readonly
     replace = _raise_readonly
