@@ -144,12 +144,13 @@ repository information:
 .. automethod:: GitPath.stat
 .. automethod:: GitPath.exists
 .. automethod:: GitPath.glob
+.. automethod:: GitPath.is_dir
+.. automethod:: GitPath.is_file
+
+
+.. automethod:: GitPath.iterdir
 .. automethod:: GitPath.read_bytes
 .. automethod:: GitPath.read_text
-
-
-.. automethod:: GitPath.is_dir
-.. automethod:: GitPath.iterdir
 .. automethod:: GitPath.resolve
 
 Methods and properties that exist only for compatibility with :mod:`pathlib`

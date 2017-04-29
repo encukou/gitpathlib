@@ -500,6 +500,22 @@ class BaseGitPath:
             return False
         return resolved._gp_type == 'tree'
 
+    def is_file(self):
+        """Whether the path points to a blob (file)
+
+        Return ``True`` if the path points to a blob (or a symbolic link
+        pointing to a blob), ``False`` if it points to another kind
+        of object.
+
+        ``False`` is also returned if the path doesn’t exist or is a broken
+        link; other errors are propagated.
+        """
+        try:
+            resolved = self.resolve(strict=True)
+        except ObjectNotFoundError:
+            return False
+        return resolved._gp_type == 'blob'
+
     def glob(self, pattern):
         """Glob the given pattern, yielding all matching files (of any kind).
 

@@ -624,6 +624,22 @@ def test_is_dir(testrepo, path, expected):
 
 
 @pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('/', False),
+        ('/dir', False),
+        ('/dir/file', True),
+        ('/link', True),
+        ('/link-to-dir', False),
+        ('/nonexistent-file', False),
+        ('/broken-link', False),
+    ])
+def test_is_file(testrepo, path, expected):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path.is_file() == expected
+
+
+@pytest.mark.parametrize(
     ['directory', 'pattern', 'matches'],
     [
         ('/', 'dir', {'dir'}),
