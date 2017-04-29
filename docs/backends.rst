@@ -4,8 +4,7 @@ GitPath backends
 .. module:: gitpathlib
 
 Interaction with Git repositories is done through “backends”.
-Currently, ``gitpathlib`` implements one backend; others need to imitate its
-API:
+All backends share the same API.
 
 .. autoclass:: gitpathlib.PygitBackend
 
@@ -18,3 +17,5 @@ API:
     .. automethod:: PygitBackend.read
     .. automethod:: PygitBackend.get_size
     .. automethod:: PygitBackend.get_mode
+
+.. autoclass:: gitpathlib.SubprocessBackend

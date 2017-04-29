@@ -515,8 +515,10 @@ class BaseGitPath:
         gitpathlib.GitPath('.../project', 'f7707d4...', 'setup.py')
         """
         backend = self._gp_backend
-        contents = backend.listdir(self.resolve(strict=True))
-        for name in contents:
+        path = self.resolve(strict=True)
+        if backend.get_type(path) not in ('tree', 'commit', 'tag'):
+            raise NotATreeError(self)
+        for name in backend.listdir(path):
             yield make_child(self, name)
 
     def is_dir(self):
@@ -633,6 +635,8 @@ class BaseGitPath:
         """
         backend = self._gp_backend
         resolved = self.resolve(strict=True)
+        if backend.get_type(resolved) != 'blob':
+            raise NotABlobError(self)
         return backend.read(resolved)
 
     def read_text(self, encoding='utf-8', errors='strict'):

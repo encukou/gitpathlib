@@ -3,7 +3,7 @@ import pathlib
 
 import pygit2
 
-from .gp_base import BaseGitPath, NotATreeError, NotABlobError
+from .gp_base import NotATreeError, NotABlobError
 
 GIT_TYPES = {
     pygit2.GIT_OBJ_COMMIT: 'commit',
@@ -53,15 +53,11 @@ class PygitBackend:
         return name in tree
 
     def listdir(self, path):
-        """Return a tuple of the contents of tree, as strings.
-
-        If the path does not identify a tree, raise :exc:`NotATreeError`.
+        """Return contents of a tree, as tuple of strings.
         """
 
         obj = get_obj(path)
-        if obj.type == pygit2.GIT_OBJ_TREE:
-            return tuple(e.name for e in obj)
-        raise NotATreeError('Not a tree: {}'.format(self))
+        return tuple(e.name for e in obj)
 
     def get_type(self, path):
         """Return the type of the object identified by this path.
@@ -75,14 +71,10 @@ class PygitBackend:
 
     def read(self, path):
         """Return the contents of a blob, as a bytestring.
-
-        If the path does not identify a blob, raise :exc:`NotABlobError`.
         """
 
         obj = get_obj(path)
-        if obj.type == pygit2.GIT_OBJ_BLOB:
-            return obj.data
-        raise NotABlobError('Not a blob: {}'.format(path))
+        return obj.data
 
     def get_size(self, path):
         """Return the length of a blob or number of entries in a tree.

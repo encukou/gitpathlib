@@ -10,6 +10,9 @@ import yaml
 import gitpathlib
 from gitpathlib import testutil
 
+from gitpathlib.gp_pygit import PygitBackend
+from gitpathlib.gp_subprocess import SubprocessBackend
+
 
 @pytest.fixture
 def testrepo(tmpdir):
@@ -70,9 +73,16 @@ def testrepo(tmpdir):
     testutil.make_repo(path, contents)
     return pygit2.Repository(path)
 
-@pytest.fixture
-def get_path(testrepo):
+@pytest.fixture(params=['pygit2', '/usr/bin/git'])
+def get_path(request, testrepo):
+    if request.param == 'pygit2':
+        backend = PygitBackend()
+    elif request.param == '/usr/bin/git':
+        backend = SubprocessBackend()
+    else:
+        raise ValueError(request.param)
     def _get_path(*args, **kwargs):
+        kwargs.setdefault('backend', backend)
         return gitpathlib.GitPath(testrepo.path, *args, **kwargs)
     return _get_path
 
