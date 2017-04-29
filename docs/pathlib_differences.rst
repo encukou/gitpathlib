@@ -133,6 +133,18 @@ Unimplemented and uninteresting functions
 .. automethod:: GitPath.owner()
 
 
+Exotic kinds of files
+.....................
+
+These methods always return ``False``, because the corresponding kind of file
+cannot be stored in Git:
+
+.. method:: GitPath.is_socket
+.. method:: GitPath.is_fifo
+.. method:: GitPath.is_block_device
+.. method:: GitPath.is_char_device
+
+
 Modification functions
 ......................
 

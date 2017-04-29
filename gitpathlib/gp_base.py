@@ -32,6 +32,11 @@ def _raise_readonly(self, *args, **kwargs):
     raise ReadOnlyError('Cannot modify a GitPath')
 
 
+def _return_false(self, *args, **kwargs):
+    """Returns False."""
+    return False
+
+
 @functools.total_ordering
 class BaseGitPath:
     """
@@ -520,6 +525,11 @@ class BaseGitPath:
         are propagated.
         """
         return readlink(self) is not None
+
+    is_socket = _return_false
+    is_fifo = _return_false
+    is_block_device = _return_false
+    is_char_device = _return_false
 
     def glob(self, pattern):
         """Glob the given pattern, yielding all matching files (of any kind).

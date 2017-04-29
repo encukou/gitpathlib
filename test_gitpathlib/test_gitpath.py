@@ -474,6 +474,19 @@ def test_mutate(testrepo, meth_name):
         meth(b'foo')
 
 
+@pytest.mark.parametrize(
+    'meth_name',
+    ['is_socket', 'is_fifo', 'is_block_device', 'is_char_device'])
+@pytest.mark.parametrize(
+    'path',
+    ['/', '/dir', '/link', '/dir/file', '/nonexistent-file',
+     '/broken-link'])
+def test_exotic(testrepo, meth_name, path):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    meth = getattr(path, meth_name)
+    assert meth() == False
+
+
 @pytest.mark.parametrize('strict', (True, False))
 @pytest.mark.parametrize(
     ['path', 'expected'],
