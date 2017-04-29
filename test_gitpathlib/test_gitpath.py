@@ -771,6 +771,44 @@ def test_glob_bad(testrepo, directory, pattern, exception):
         list(path.glob(pattern))
 
 
+@pytest.mark.parametrize(
+    ['directory', 'pattern', 'matches'],
+    [
+        ('/', 'file', {'dir/file', 'dir/subdir/file',
+                       'link-to-dir/file', 'link-to-dir/subdir/file',
+                       'abs-link-to-dir/file', 'abs-link-to-dir/subdir/file',
+                       }),
+        ('/', '', {'/', 'dir', 'dir/subdir',
+                   'link-to-dir', 'abs-link-to-dir',
+                   'link-to-dir/subdir', 'abs-link-to-dir/subdir'}),
+        ('/', '.', {'/', 'dir', 'dir/subdir',
+                    'link-to-dir', 'abs-link-to-dir',
+                    'link-to-dir/subdir', 'abs-link-to-dir/subdir'}),
+        ('/', '..', {'/..', 'dir/..', 'dir/subdir/..',
+                     'link-to-dir/..', 'abs-link-to-dir/..',
+                     'link-to-dir/subdir/..', 'abs-link-to-dir/subdir/..'}),
+    ])
+def test_rglob(testrepo, directory, pattern, matches):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+    expected = {
+        gitpathlib.GitPath(testrepo.path, 'HEAD', match)
+        for match in matches
+    }
+    assert set(path.rglob(pattern)) == expected
+
+
+@pytest.mark.parametrize(
+    ['directory', 'pattern', 'exception'],
+    [
+        ('/', '/', NotImplementedError),
+        ('/', '/dir', NotImplementedError),
+    ])
+def test_rglob_bad(testrepo, directory, pattern, exception):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+    with pytest.raises(exception):
+        list(path.rglob(pattern))
+
+
 def test_group(testrepo):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD')
     with pytest.raises(KeyError):

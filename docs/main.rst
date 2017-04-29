@@ -153,6 +153,7 @@ repository information:
 .. automethod:: GitPath.read_bytes
 .. automethod:: GitPath.read_text
 .. automethod:: GitPath.resolve
+.. automethod:: GitPath.rglob
 
 Methods and properties that exist only for compatibility with :mod:`pathlib`
 are listed in :ref:`unimplemented`.

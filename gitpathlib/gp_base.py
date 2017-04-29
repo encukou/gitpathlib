@@ -578,12 +578,21 @@ class BaseGitPath:
             Using the “``**``” pattern in large directory trees may consume
             an inordinate amount of time.
         """
-        pattern = pathlib.PurePosixPath(pattern)
-        if pattern.is_absolute():
-            raise NotImplementedError('Non-relative patterns are unsupported')
-        if not pattern.parts:
-            raise ValueError('Empty pattern')
-        return glob(self, *pattern.parts, seen=set())
+        return glob(self, pattern)
+
+    def rglob(self, pattern):
+        """This is like glob() with “**” added in front of the given pattern
+
+        >>> for p in GitPath('project', 'HEAD').rglob('*.py'):
+        ...     print(p)
+        ...
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'setup.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', '__init__.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'util.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'tests', 'test_bar.py')
+        gitpathlib.GitPath('.../project', 'f7707d4...', 'project', 'tests', 'test_foo.py')
+        """
+        return glob(self, pattern, rglob=True)
 
     def group(self):
         """Raises :exc:`KeyError`, since Git objects aren't owned by groups."""
@@ -748,7 +757,20 @@ def resolve(self, strict, seen):
     return result
 
 
-def glob(self, part=None, *more_parts, seen):
+def glob(self, pattern, rglob=False):
+    pattern = pathlib.PurePosixPath(pattern)
+    if pattern.is_absolute():
+        raise NotImplementedError('Non-relative patterns are unsupported')
+    if rglob:
+        parts = ('**', ) + pattern.parts
+    elif not pattern.parts:
+        raise ValueError('Empty pattern')
+    else:
+        parts = pattern.parts
+    return _glob(self, *parts, seen=set())
+
+
+def _glob(self, part=None, *more_parts, seen):
     if part is None:
         yield self
         return
@@ -762,15 +784,17 @@ def glob(self, part=None, *more_parts, seen):
         return
     if self.is_dir():
         if part == '**':
-            yield from glob(self, *more_parts, seen=set())
+            yield from _glob(self, *more_parts, seen=set())
             for child in self.iterdir():
-                yield from glob(child, '**', *more_parts, seen=seen | {resolved})
+                yield from _glob(child, '**', *more_parts,
+                                 seen=seen | {resolved})
         elif part == '..':
-            yield from glob(self._gp_make_child('..'), *more_parts, seen=set())
+            yield from _glob(self._gp_make_child('..'), *more_parts,
+                             seen=set())
         else:
             for child in self.iterdir():
                 if fnmatch.fnmatchcase(child.name, part):
-                    yield from glob(child, *more_parts, seen=set())
+                    yield from _glob(child, *more_parts, seen=set())
 
 
 def eq_key(gitpath):
