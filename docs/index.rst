@@ -8,6 +8,7 @@ Detailed Documentation
 
     main
     pathlib_differences
+    backends
 
 Indices and tables
 ==================
