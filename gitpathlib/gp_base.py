@@ -403,8 +403,19 @@ class BaseGitPath:
 
         Note in particular that timestamps are always zero.
         """
-        raise NotImplementedError(
-            'GitPathBase.stat must be overridden in subclass')
+        resolved = resolve(self, True, set())
+        if not resolved._gp_exists:
+            raise ObjectNotFoundError(self)
+        return resolved._gp_lstat()
+
+    def lstat(self):
+        """Like :meth:`stat()` but, if the path points to a symbolic link,
+        return the symbolic link’s information rather than its target’s.
+        """
+        parent, sibling, link, exists = _preresolve(self, set())
+        if not exists:
+            raise ObjectNotFoundError(self)
+        return sibling._gp_lstat()
 
     chmod = _raise_readonly
     lchmod = _raise_readonly

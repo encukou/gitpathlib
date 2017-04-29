@@ -147,9 +147,9 @@ repository information:
 .. automethod:: GitPath.is_dir
 .. automethod:: GitPath.is_file
 .. automethod:: GitPath.is_symlink
-
-
 .. automethod:: GitPath.iterdir
+.. automethod:: GitPath.lstat
+
 .. automethod:: GitPath.read_bytes
 .. automethod:: GitPath.read_text
 .. automethod:: GitPath.resolve

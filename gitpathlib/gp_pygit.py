@@ -85,10 +85,7 @@ class PygitPath(BaseGitPath):
         self = self.resolve(strict=True)
         return self._gp_obj.hex
 
-
-    @inherit_docstring(BaseGitPath)
-    def stat(self):
-        self = self.resolve(strict=True)
+    def _gp_lstat(self):
         if self is self.parent:
             st_mode = pygit2.GIT_FILEMODE_TREE
         else:
