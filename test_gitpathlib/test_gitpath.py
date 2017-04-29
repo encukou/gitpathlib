@@ -648,6 +648,25 @@ def test_is_file(testrepo, path, expected):
 
 
 @pytest.mark.parametrize(
+    ['path', 'expected'],
+    [
+        ('/', False),
+        ('/dir', False),
+        ('/dir/file', False),
+        ('/link', True),
+        ('/link-to-dir', True),
+        ('/nonexistent-file', False),
+        ('/broken-link', True),
+        ('/dir/nonexistent/..', False),
+        ('/dir/file/..', False),
+        ('/link-to-dir/subdir/..', False),
+    ])
+def test_is_symlink(testrepo, path, expected):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    assert path.is_symlink() == expected
+
+
+@pytest.mark.parametrize(
     ['directory', 'pattern', 'matches'],
     [
         ('/', 'dir', {'dir'}),

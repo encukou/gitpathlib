@@ -146,6 +146,7 @@ repository information:
 .. automethod:: GitPath.glob
 .. automethod:: GitPath.is_dir
 .. automethod:: GitPath.is_file
+.. automethod:: GitPath.is_symlink
 
 
 .. automethod:: GitPath.iterdir

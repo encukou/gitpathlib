@@ -513,6 +513,14 @@ class BaseGitPath:
             return False
         return resolved._gp_type == 'blob'
 
+    def is_symlink(self):
+        """Whether the path points to a symbolic link
+
+        ``False`` is also returned if the path doesn’t exist; other errors
+        are propagated.
+        """
+        return readlink(self) is not None
+
     def glob(self, pattern):
         """Glob the given pattern, yielding all matching files (of any kind).
 
@@ -585,6 +593,26 @@ class BaseGitPath:
         if errors is None:
             errors = 'strict'
         return self.read_bytes().decode(encoding=encoding, errors=errors)
+
+
+def readlink(self):
+    try:
+        parent = resolve(self.parent, True, set())
+    except ObjectNotFoundError:
+        return None
+    if not parent.exists:
+        return None
+    if self.name == '.':
+        return None
+    if self.name == '..':
+        return None
+    if parent is self.parent:
+        sibling = self
+    else:
+        sibling = parent._gp_make_child(self.name)
+    if not sibling._gp_exists:
+        return None
+    return sibling._gp_read_link
 
 
 def resolve(self, strict, seen):
