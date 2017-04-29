@@ -71,6 +71,12 @@ def testrepo(tmpdir):
     return pygit2.Repository(path)
 
 @pytest.fixture
+def get_path(testrepo):
+    def _get_path(*args, **kwargs):
+        return gitpathlib.GitPath(testrepo.path, *args, **kwargs)
+    return _get_path
+
+@pytest.fixture
 def part0(testrepo, tmpdir):
     tree = testrepo.head.peel(pygit2.Tree).hex
     return os.path.join(str(tmpdir), 'testrepo') + ':' + tree
@@ -81,68 +87,68 @@ def cloned_repo(tmpdir, testrepo):
     return pygit2.clone_repository(testrepo.path, path)
 
 
-def test_head(testrepo):
-    path = gitpathlib.GitPath(testrepo.path)
+def test_head(testrepo, get_path):
+    path = get_path()
     assert path.hex == testrepo.head.peel(pygit2.Tree).hex
 
 
-def test_parent(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD^')
+def test_parent(testrepo, get_path):
+    path = get_path('HEAD^')
     parent = testrepo.head.peel(pygit2.Commit).parents[0]
     assert path.hex == parent.peel(pygit2.Tree).hex
 
 
-def test_components(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_components(testrepo, get_path):
+    path = get_path('HEAD', 'dir', 'file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_parts_empty(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_parts_empty(get_path, part0):
+    path = get_path('HEAD')
     assert path.parts == (part0, )
 
 
-def test_parts(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_parts(get_path, part0):
+    path = get_path('HEAD', 'dir', 'file')
     assert path.parts == (part0, 'dir', 'file')
 
 
-def test_parts_slash(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/file')
+def test_parts_slash(get_path, part0):
+    path = get_path('HEAD', 'dir/file')
     assert path.parts == (part0, 'dir', 'file')
 
 
-def test_parts_slashdot(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/./file')
+def test_parts_slashdot(get_path, part0):
+    path = get_path('HEAD', 'dir/./file')
     assert path.parts == (part0, 'dir', 'file')
 
 
-def test_dotdot(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/../dir/file')
+def test_dotdot(get_path, part0):
+    path = get_path('HEAD', 'dir/../dir/file')
     assert path.parts == (part0, 'dir', '..', 'dir', 'file')
 
 
-def test_hash(testrepo):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD')
-    path2 = gitpathlib.GitPath(testrepo.path, 'master')
+def test_hash(get_path):
+    path1 = get_path('HEAD')
+    path2 = get_path('master')
     assert hash(path1) == hash(path2)
 
 
-def test_eq(testrepo):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD')
-    path2 = gitpathlib.GitPath(testrepo.path, 'master')
+def test_eq(get_path):
+    path1 = get_path('HEAD')
+    path2 = get_path('master')
     assert path1 == path2
 
 
-def test_eq_dir(testrepo):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
-    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
+def test_eq_dir(get_path):
+    path1 = get_path('HEAD', 'dir')
+    path2 = get_path('HEAD', 'dir')
     assert path1 == path2
 
 
-def test_ne(testrepo):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
-    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_ne(get_path):
+    path1 = get_path('HEAD', 'dir')
+    path2 = get_path('HEAD', 'dir', 'file')
     assert path1 != path2
 
 
@@ -152,49 +158,49 @@ def test_eq_across_repos(testrepo, cloned_repo):
     assert path1 == path2
 
 
-def test_ne_different_roots(testrepo):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD:dir', 'file')
+def test_ne_different_roots(get_path):
+    path1 = get_path('HEAD', 'dir', 'file')
+    path2 = get_path('HEAD:dir', 'file')
     assert path1 != path2
 
 
-def test_slash(testrepo):
-    path = gitpathlib.GitPath(testrepo.path) / 'dir'
+def test_slash(testrepo, get_path):
+    path = get_path() / 'dir'
     assert path.hex == testrepo.revparse_single('HEAD:dir').hex
 
 
-def test_slash_multiple(testrepo):
-    path = gitpathlib.GitPath(testrepo.path) / 'dir' / 'file'
+def test_slash_multiple(testrepo, get_path):
+    path = get_path() / 'dir' / 'file'
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_slash_combined(testrepo):
-    path = gitpathlib.GitPath(testrepo.path) / 'dir/file'
+def test_slash_combined(testrepo, get_path):
+    path = get_path() / 'dir/file'
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_slash_pathlib(testrepo):
-    path = gitpathlib.GitPath(testrepo.path) / Path('dir/file')
+def test_slash_pathlib(testrepo, get_path):
+    path = get_path() / Path('dir/file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_slash_absolute_str(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir') / '/dir/file'
+def test_slash_absolute_str(testrepo, get_path):
+    path = get_path('HEAD', 'dir') / '/dir/file'
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_slash_absolute_path(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir') / Path('/dir/file')
+def test_slash_absolute_path(testrepo, get_path):
+    path = get_path('HEAD', 'dir') / Path('/dir/file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_no_open(testrepo):
+def test_no_open(testrepo, get_path):
     with pytest.raises(TypeError):
-        open(gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file'))
+        open(get_path('HEAD', 'dir', 'file'))
 
 
-def test_str_and_repr(testrepo, tmpdir):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_str_and_repr(testrepo, get_path, tmpdir):
+    path = get_path('HEAD', 'dir', 'file')
     repo = os.path.join(str(tmpdir), 'testrepo')
     hex = testrepo.revparse_single('HEAD:').hex
     expected = "gitpathlib.GitPath('{repo}', '{hex}', 'dir', 'file')".format(
@@ -203,142 +209,142 @@ def test_str_and_repr(testrepo, tmpdir):
     assert repr(path) == expected
 
 
-def test_no_bytes(testrepo):
+def test_no_bytes(get_path):
     with pytest.raises(TypeError):
-        path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+        path = get_path('HEAD', 'dir', 'file')
         bytes(path)
 
 
-def test_drive(testrepo, tmpdir):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_drive(get_path, tmpdir):
+    path = get_path('HEAD', 'dir', 'file')
     assert path.drive == os.path.join(str(tmpdir), 'testrepo')
 
 
-def test_root(testrepo, tmpdir):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_root(testrepo, get_path):
+    path = get_path('HEAD', 'dir', 'file')
     assert path.root == testrepo.revparse_single('HEAD:').hex
 
 
-def test_anchor(testrepo, tmpdir):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_anchor(testrepo, get_path, tmpdir):
+    path = get_path('HEAD', 'dir', 'file')
     repodir = os.path.join(str(tmpdir), 'testrepo')
     tree = testrepo.revparse_single('HEAD:').hex
     assert path.anchor == repodir + ':' + tree
 
 
-def test_parents(testrepo):
-    root = gitpathlib.GitPath(testrepo.path)
+def test_parents(get_path):
+    root = get_path()
     path = root / 'dir' / 'file'
     parents = path.parents
     assert parents == (root / 'dir', root)
 
 
-def test_parents_dotdot(testrepo):
-    root = gitpathlib.GitPath(testrepo.path)
+def test_parents_dotdot(get_path):
+    root = get_path()
     path = root / 'dir' / '..' / 'file'
     parents = path.parents
     assert parents == (root / 'dir' / '..', root / 'dir', root)
 
 
-def test_parent(testrepo):
-    root = gitpathlib.GitPath(testrepo.path)
+def test_parent(get_path):
+    root = get_path()
     path = root / 'dir'
     assert path.parent == root
 
 
-def test_parent_dotdot(testrepo):
-    root = gitpathlib.GitPath(testrepo.path)
+def test_parent_dotdot(get_path):
+    root = get_path()
     path = root / 'dir' / '..' / 'file'
     assert path.parent == root / 'dir' / '..'
 
 
-def test_name(testrepo):
-    path = gitpathlib.GitPath(testrepo.path) / 'dir'
+def test_name(get_path):
+    path = get_path() / 'dir'
     assert path.name == 'dir'
 
 
-def test_name_root(testrepo):
-    path = gitpathlib.GitPath(testrepo.path)
+def test_name_root(get_path):
+    path = get_path()
     assert path.name == ''
 
 
-def test_suffix_and_friends_0(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive')
+def test_suffix_and_friends_0(get_path):
+    path = get_path('HEAD', 'archive')
     assert path.suffix == ''
     assert path.suffixes == []
     assert path.stem == 'archive'
 
 
-def test_suffix_and_friends_1(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive.tar')
+def test_suffix_and_friends_1(get_path):
+    path = get_path('HEAD', 'archive.tar')
     assert path.suffix == '.tar'
     assert path.suffixes == ['.tar']
     assert path.stem == 'archive'
 
 
-def test_suffix_and_friends_2(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive.tar.gz')
+def test_suffix_and_friends_2(get_path):
+    path = get_path('HEAD', 'archive.tar.gz')
     assert path.suffix == '.gz'
     assert path.suffixes == ['.tar', '.gz']
     assert path.stem == 'archive.tar'
 
 
-def test_suffix_and_friends_3(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'archive.tar.gz.xz')
+def test_suffix_and_friends_3(get_path):
+    path = get_path('HEAD', 'archive.tar.gz.xz')
     assert path.suffix == '.xz'
     assert path.suffixes == ['.tar', '.gz', '.xz']
     assert path.stem == 'archive.tar.gz'
 
 
-def test_as_posix_not_callable(testrepo):
-    path = gitpathlib.GitPath(testrepo.path)
+def test_as_posix_not_callable(get_path):
+    path = get_path()
     with pytest.raises(TypeError):
         path.as_posix()
 
 
-def test_as_uri_not_callable(testrepo):
-    path = gitpathlib.GitPath(testrepo.path)
+def test_as_uri_not_callable(get_path):
+    path = get_path()
     with pytest.raises(ValueError):
         path.as_uri()
 
 
-def test_is_absolute(testrepo):
-    path = gitpathlib.GitPath(testrepo.path)
+def test_is_absolute(get_path):
+    path = get_path()
     assert path.is_absolute()
 
 
-def test_is_reserved(testrepo):
-    path = gitpathlib.GitPath(testrepo.path)
+def test_is_reserved(get_path):
+    path = get_path()
     assert not path.is_reserved()
 
 
-def test_joinpath(testrepo):
-    path = gitpathlib.GitPath(testrepo.path).joinpath('dir')
+def test_joinpath(testrepo, get_path):
+    path = get_path().joinpath('dir')
     assert path.hex == testrepo.revparse_single('HEAD:dir').hex
 
 
-def test_joinpath_multiple(testrepo):
-    path = gitpathlib.GitPath(testrepo.path).joinpath('dir', 'file')
+def test_joinpath_multiple(testrepo, get_path):
+    path = get_path().joinpath('dir', 'file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_joinpath_combined(testrepo):
-    path = gitpathlib.GitPath(testrepo.path).joinpath('dir/file')
+def test_joinpath_combined(testrepo, get_path):
+    path = get_path().joinpath('dir/file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_joinpath_pathlib(testrepo):
-    path = gitpathlib.GitPath(testrepo.path).joinpath(Path('dir/file'))
+def test_joinpath_pathlib(testrepo, get_path):
+    path = get_path().joinpath(Path('dir/file'))
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_joinpath_absolute_str(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir').joinpath('/dir/file')
+def test_joinpath_absolute_str(testrepo, get_path):
+    path = get_path('HEAD', 'dir').joinpath('/dir/file')
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
-def test_joinpath_absolute_path(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir').joinpath(Path('/dir/file'))
+def test_joinpath_absolute_path(testrepo, get_path):
+    path = get_path('HEAD', 'dir').joinpath(Path('/dir/file'))
     assert path.hex == testrepo.revparse_single('HEAD:dir/file').hex
 
 
@@ -349,8 +355,8 @@ def test_joinpath_absolute_path(testrepo):
         '/dir/file', '/dir/*le', '*/file', '/dir/file/', '*/*', '/*/*'
     ]
 )
-def test_match_positive(testrepo, pattern):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_match_positive(get_path, pattern):
+    path = get_path('HEAD', 'dir', 'file')
     assert path.match(pattern)
 
 
@@ -361,8 +367,8 @@ def test_match_positive(testrepo, pattern):
         '/dir/fi', '/*/*/*',
     ]
 )
-def test_match_negative(testrepo, pattern):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_match_negative(get_path, pattern):
+    path = get_path('HEAD', 'dir', 'file')
     assert not path.match(pattern)
 
 
@@ -376,9 +382,9 @@ def test_match_negative(testrepo, pattern):
         ('dir/file', '.'),
     ]
 )
-def test_relative_to_positive(testrepo, path, expected):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
-    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_relative_to_positive(get_path, path, expected):
+    path1 = get_path('HEAD', 'dir', 'file')
+    path2 = get_path('HEAD', path)
     assert path1.relative_to(path2) == PurePosixPath(expected)
 
 
@@ -391,58 +397,58 @@ def test_relative_to_positive(testrepo, path, expected):
         ('HEAD:dir', '.'),
     ]
 )
-def test_relative_to_negative(testrepo, rev, path):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
-    path2 = gitpathlib.GitPath(testrepo.path, rev, path)
+def test_relative_to_negative(get_path, rev, path):
+    path1 = get_path('HEAD', 'dir')
+    path2 = get_path(rev, path)
     with pytest.raises(ValueError):
         path1.relative_to(path2)
 
 
-def test_with_name_positive(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_with_name_positive(get_path, part0):
+    path = get_path('HEAD', 'dir', 'file')
     path = path.with_name('otherfile')
     assert path.parts == (part0, 'dir', 'otherfile')
 
 
-def test_with_name_noname(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_with_name_noname(get_path):
+    path = get_path('HEAD')
     with pytest.raises(ValueError):
         path = path.with_name('otherfile')
 
 
 @pytest.mark.parametrize('badname', ['', 'bad/name', 'bad\0name'])
-def test_with_name_badname(testrepo, badname):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_with_name_badname(get_path, badname):
+    path = get_path('HEAD', 'dir', 'file')
     with pytest.raises(ValueError):
         path = path.with_name(badname)
 
 
-def test_with_suffix_positive(testrepo, part0):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file.txt')
+def test_with_suffix_positive(get_path, part0):
+    path = get_path('HEAD', 'dir', 'file.txt')
     path = path.with_suffix('.py')
     assert path.parts == (part0, 'dir', 'file.py')
 
 
-def test_with_name_noname(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_with_name_noname(get_path):
+    path = get_path('HEAD')
     with pytest.raises(ValueError):
         path = path.with_suffix('.py')
 
 
 @pytest.mark.parametrize('badsuffix', ['', 'py', './py', '.\0?', '.'])
-def test_with_name_badsuffix(testrepo, badsuffix):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir', 'file')
+def test_with_name_badsuffix(get_path, badsuffix):
+    path = get_path('HEAD', 'dir', 'file')
     with pytest.raises(ValueError):
         path = path.with_suffix(badsuffix)
 
 
-def test_cwd(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_cwd(get_path):
+    path = get_path('HEAD')
     assert path.cwd() == Path.cwd()
 
 
-def test_home(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_home(get_path):
+    path = get_path('HEAD')
     assert path.home() == Path.home()
 
 
@@ -482,8 +488,8 @@ def check_stat(meth, mode, expected_hex, size, exception):
         ('/nonexistent-file', None, None, gitpathlib.ObjectNotFoundError),
     ]
 )
-def test_stat(testrepo, path, mode, size, exception):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_stat(testrepo, get_path, path, mode, size, exception):
+    path = get_path('HEAD', path)
     expected_hex = None if exception else testrepo[path.hex].id.raw
     check_stat(path.stat, mode, expected_hex, size, exception)
 
@@ -509,8 +515,8 @@ def test_stat(testrepo, path, mode, size, exception):
          None),
     ]
 )
-def test_lstat(testrepo, path, mode, size, exception, expected_hex):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_lstat(testrepo, get_path, path, mode, size, exception, expected_hex):
+    path = get_path('HEAD', path)
     if exception:
         expected_hex = None
     else:
@@ -525,8 +531,8 @@ def test_lstat(testrepo, path, mode, size, exception, expected_hex):
     'meth_name',
     ['chmod', 'mkdir', 'rename', 'replace', 'rmdir', 'symlink_to', 'touch',
      'unlink', 'write_bytes', 'write_text', 'lchmod'])
-def test_mutate(testrepo, meth_name):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_mutate(get_path, meth_name):
+    path = get_path('HEAD')
     meth = getattr(path, meth_name)
     with pytest.raises(PermissionError):
         meth()
@@ -545,8 +551,8 @@ def test_mutate(testrepo, meth_name):
     'path',
     ['/', '/dir', '/link', '/dir/file', '/nonexistent-file',
      '/broken-link'])
-def test_exotic(testrepo, meth_name, path):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_exotic(get_path, meth_name, path):
+    path = get_path('HEAD', path)
     meth = getattr(path, meth_name)
     assert meth() == False
 
@@ -581,9 +587,9 @@ def test_exotic(testrepo, meth_name, path):
         ('/abs-link-to-dir/.', '/dir'),
         ('/abs-link-to-dir/file', '/dir/file'),
     ])
-def test_resolve_good(testrepo, path, expected, strict):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
-    expected_path = gitpathlib.GitPath(testrepo.path, 'HEAD', expected)
+def test_resolve_good(get_path, path, expected, strict):
+    path = get_path('HEAD', path)
+    expected_path = get_path('HEAD', expected)
     assert path.resolve(strict) == expected_path
 
 
@@ -601,9 +607,9 @@ def test_resolve_good(testrepo, path, expected, strict):
         ('/dir/nonexistent/.', '/dir/nonexistent'),
         #('/dir/file/..', '/dir'),  # XXX - what to do here?
     ])
-def test_resolve_ugly(testrepo, path, expected, strict):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
-    expected_path = gitpathlib.GitPath(testrepo.path, 'HEAD', expected)
+def test_resolve_ugly(get_path, path, expected, strict):
+    path = get_path('HEAD', path)
+    expected_path = get_path('HEAD', expected)
     if strict:
         with pytest.raises(gitpathlib.ObjectNotFoundError):
             path.resolve(strict)
@@ -624,15 +630,15 @@ def test_resolve_ugly(testrepo, path, expected, strict):
         '/loop-link-b/more',
         '/loop-link-b/more',
     ])
-def test_resolve_bad(testrepo, path, strict):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_resolve_bad(get_path, path, strict):
+    path = get_path('HEAD', path)
     with pytest.raises(RuntimeError):
         path.resolve(strict)
 
 
 @pytest.mark.parametrize('path', ['/dir', '/dir/file', 'bla/bla'])
-def test_expaduser(testrepo, path):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_expaduser(get_path, path):
+    path = get_path('HEAD', path)
     assert path.expanduser() == path
 
 
@@ -646,8 +652,8 @@ def test_expaduser(testrepo, path):
         '/link-to-dir/file',
         '/dir/file/..',
     ])
-def test_exists(testrepo, path):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_exists(get_path, path):
+    path = get_path('HEAD', path)
     assert path.exists()
 
 
@@ -660,8 +666,8 @@ def test_exists(testrepo, path):
         '/dir/../nonexistent-file',
         '/dir/nonexistent/..',
     ])
-def test_not_exists(testrepo, path):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_not_exists(get_path, path):
+    path = get_path('HEAD', path)
     assert not path.exists()
 
 
@@ -675,10 +681,10 @@ def test_not_exists(testrepo, path):
         ('/dir', {'file', 'link-up', 'link-dot', 'link-self-rel',
                   'link-self-abs', 'subdir'}),
     ])
-def test_iterdir(testrepo, directory, contents):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+def test_iterdir(get_path, directory, contents):
+    path = get_path('HEAD', directory)
     expected = set(
-        gitpathlib.GitPath(testrepo.path, 'HEAD', directory, content)
+        get_path('HEAD', directory, content)
         for content in contents
     )
     assert set(path.iterdir()) == set(expected)
@@ -692,8 +698,8 @@ def test_iterdir(testrepo, directory, contents):
         ('/nonexistent-file', gitpathlib.ObjectNotFoundError),
         ('/broken-link', gitpathlib.ObjectNotFoundError),
     ])
-def test_iterdir_fail(testrepo, path, exception):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_iterdir_fail(get_path, path, exception):
+    path = get_path('HEAD', path)
     with pytest.raises(exception):
         assert set(path.iterdir())
 
@@ -711,8 +717,8 @@ def test_iterdir_fail(testrepo, path, exception):
         ('/dir/nonexistent/..', False),
         ('/dir/file/..', True),  # XXX - what to do here?
     ])
-def test_is_dir(testrepo, path, expected):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_is_dir(get_path, path, expected):
+    path = get_path('HEAD', path)
     assert path.is_dir() == expected
 
 
@@ -729,8 +735,8 @@ def test_is_dir(testrepo, path, expected):
         ('/dir/nonexistent/..', False),
         ('/dir/file/..', False),
     ])
-def test_is_file(testrepo, path, expected):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_is_file(get_path, path, expected):
+    path = get_path('HEAD', path)
     assert path.is_file() == expected
 
 
@@ -748,8 +754,8 @@ def test_is_file(testrepo, path, expected):
         ('/dir/file/..', False),
         ('/link-to-dir/subdir/..', False),
     ])
-def test_is_symlink(testrepo, path, expected):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_is_symlink(get_path, path, expected):
+    path = get_path('HEAD', path)
     assert path.is_symlink() == expected
 
 
@@ -772,10 +778,10 @@ def test_is_symlink(testrepo, path, expected):
         ('/file', '*', {}),
         ('/dir', '../ex*e', {'dir/../executable'}),
     ])
-def test_glob(testrepo, directory, pattern, matches):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+def test_glob(get_path, directory, pattern, matches):
+    path = get_path('HEAD', directory)
     expected = {
-        gitpathlib.GitPath(testrepo.path, 'HEAD', match)
+        get_path('HEAD', match)
         for match in matches
     }
     assert set(path.glob(pattern)) == expected
@@ -787,8 +793,8 @@ def test_glob(testrepo, directory, pattern, matches):
         ('/', '', ValueError),
         ('/', '/', NotImplementedError),
     ])
-def test_glob_bad(testrepo, directory, pattern, exception):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+def test_glob_bad(get_path, directory, pattern, exception):
+    path = get_path('HEAD', directory)
     with pytest.raises(exception):
         list(path.glob(pattern))
 
@@ -810,10 +816,10 @@ def test_glob_bad(testrepo, directory, pattern, exception):
                      'link-to-dir/..', 'abs-link-to-dir/..',
                      'link-to-dir/subdir/..', 'abs-link-to-dir/subdir/..'}),
     ])
-def test_rglob(testrepo, directory, pattern, matches):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+def test_rglob(get_path, directory, pattern, matches):
+    path = get_path('HEAD', directory)
     expected = {
-        gitpathlib.GitPath(testrepo.path, 'HEAD', match)
+        get_path('HEAD', match)
         for match in matches
     }
     assert set(path.rglob(pattern)) == expected
@@ -825,20 +831,20 @@ def test_rglob(testrepo, directory, pattern, matches):
         ('/', '/', NotImplementedError),
         ('/', '/dir', NotImplementedError),
     ])
-def test_rglob_bad(testrepo, directory, pattern, exception):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', directory)
+def test_rglob_bad(get_path, directory, pattern, exception):
+    path = get_path('HEAD', directory)
     with pytest.raises(exception):
         list(path.rglob(pattern))
 
 
-def test_group(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_group(get_path):
+    path = get_path('HEAD')
     with pytest.raises(KeyError):
         path.group()
 
 
-def test_owner(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD')
+def test_owner(get_path):
+    path = get_path('HEAD')
     with pytest.raises(KeyError):
         path.owner()
 
@@ -849,8 +855,8 @@ def test_owner(testrepo):
         ('/dir/file', b'Here are the contents of a file\n'),
         ('/link', b'Here are the contents of a file\n'),
     ])
-def test_read_bytes(testrepo, path, expected):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_read_bytes(get_path, path, expected):
+    path = get_path('HEAD', path)
     assert path.read_bytes() == expected
 
 
@@ -862,8 +868,8 @@ def test_read_bytes(testrepo, path, expected):
         ('/nonexistent-file', gitpathlib.ObjectNotFoundError),
         ('/broken-link', gitpathlib.ObjectNotFoundError),
     ])
-def test_read_bytes_exc(testrepo, path, exception):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_read_bytes_exc(get_path, path, exception):
+    path = get_path('HEAD', path)
     with pytest.raises(exception):
         path.read_bytes()
 
@@ -874,8 +880,8 @@ def test_read_bytes_exc(testrepo, path, exception):
         ('/dir/file', 'Here are the contents of a file\n'),
         ('/link', 'Here are the contents of a file\n'),
     ])
-def test_read_text(testrepo, path, expected):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_read_text(get_path, path, expected):
+    path = get_path('HEAD', path)
     assert path.read_text() == expected
 
 
@@ -887,52 +893,52 @@ def test_read_text(testrepo, path, expected):
         ('/nonexistent-file', gitpathlib.ObjectNotFoundError),
         ('/broken-link', gitpathlib.ObjectNotFoundError),
     ])
-def test_read_text_exc(testrepo, path, exception):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_read_text_exc(get_path, path, exception):
+    path = get_path('HEAD', path)
     with pytest.raises(exception):
         path.read_text()
 
 
-def test_open(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file')
+def test_open(get_path):
+    path = get_path('HEAD', 'dir/subdir/file')
     with path.open() as f:
         assert f.read() == 'contents'
 
 
-def test_open_rt(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file')
+def test_open_rt(get_path):
+    path = get_path('HEAD', 'dir/subdir/file')
     with path.open(mode='rt') as f:
         assert f.read() == 'contents'
 
 
-def test_open_utf8(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf8')
+def test_open_utf8(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-utf8')
     with path.open() as f:
         assert f.read() == 'ċóňťëñŧş ☺'
 
 
-def test_open_utf8_explicit(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf8')
+def test_open_utf8_explicit(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-utf8')
     with path.open(encoding='utf-8') as f:
         assert f.read() == 'ċóňťëñŧş ☺'
 
 
-def test_open_utf8_bad(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf16')
+def test_open_utf8_bad(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-utf16')
     with pytest.raises(UnicodeDecodeError):
         with path.open() as f:
             f.read()
 
 
-def test_open_utf8_errors(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf16')
+def test_open_utf8_errors(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-utf16')
     expected = '��\x0b\x01�\x00H\x01e\x01�\x00�\x00g\x01_\x01 \x00:&'
     with path.open(errors='replace') as f:
         assert f.read() == expected
 
 
-def test_open_utf16(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf16')
+def test_open_utf16(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-utf16')
     with path.open(encoding='utf-16') as f:
         assert f.read() == 'ċóňťëñŧş ☺'
 
@@ -940,32 +946,32 @@ def test_open_utf16(testrepo):
 @pytest.mark.parametrize(
     'mode', ['', 'w', 'x', 'a', 'b', 't', '+', 'U', 'rr', 'rbt', 'bt',
              'r+', 'rw', 'rx', 'ra', '?'])
-def test_open_bad_mode(testrepo, mode):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/file')
+def test_open_bad_mode(get_path, mode):
+    path = get_path('HEAD', 'dir/file')
     with pytest.raises(ValueError):
         path.open(mode=mode)
 
 
-def test_open_binary(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+def test_open_binary(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-binary')
     with path.open('rb') as f:
         assert f.read() == b'some\x00data\xff\xff'
 
 
-def test_open_binary_encoding(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+def test_open_binary_encoding(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-binary')
     with pytest.raises(ValueError):
         path.open('rb', encoding='utf-8')
 
 
-def test_open_binary_errors(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+def test_open_binary_errors(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-binary')
     with pytest.raises(ValueError):
         path.open('rb', errors='strict')
 
 
-def test_open_binary_newline(testrepo):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+def test_open_binary_newline(get_path):
+    path = get_path('HEAD', 'dir/subdir/file-binary')
     with pytest.raises(ValueError):
         path.open('rb', newline='')
 
@@ -979,8 +985,8 @@ def test_open_binary_newline(testrepo):
         ('\r\n', ['unix\nwindows\r\n', 'mac\rnone']),
         ('\r', ['unix\nwindows\r', '\nmac\r', 'none']),
     ])
-def test_open_newline(testrepo, newline, expected):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-lines')
+def test_open_newline(get_path, newline, expected):
+    path = get_path('HEAD', 'dir/subdir/file-lines')
     with path.open('rb') as f:
         assert f.read() == b'unix\nwindows\r\nmac\rnone'
     with path.open(newline=newline) as f:
@@ -1003,9 +1009,9 @@ def test_open_newline(testrepo, newline, expected):
         ('HEAD', 'link-to-dir', 'HEAD', 'dir', True),
         ('HEAD', 'link', 'HEAD', 'link', True),
     ])
-def test_samefile(testrepo, rev1, path1, rev2, path2, expected):
-    path1 = gitpathlib.GitPath(testrepo.path, rev1, path1)
-    path2 = gitpathlib.GitPath(testrepo.path, rev2, path2)
+def test_samefile(get_path, rev1, path1, rev2, path2, expected):
+    path1 = get_path(rev1, path1)
+    path2 = get_path(rev2, path2)
     assert path1.samefile(path2) == expected
 
 
@@ -1016,9 +1022,9 @@ def test_samefile(testrepo, rev1, path1, rev2, path2, expected):
         ('broken-link', gitpathlib.ObjectNotFoundError),
         ('self-loop-link', RuntimeError),
     ])
-def test_samefile_bad_path(testrepo, path, exception):
-    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
-    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+def test_samefile_bad_path(get_path, path, exception):
+    path1 = get_path('HEAD', 'dir')
+    path2 = get_path('HEAD', path)
     with pytest.raises(exception):
         path1.samefile(path2)
 
@@ -1031,6 +1037,6 @@ def test_samefile_bad_path(testrepo, path, exception):
         Path('dir'),
         3j-8,
     ])
-def test_samefile_otherobject(testrepo, other):
-    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
+def test_samefile_otherobject(get_path, other):
+    path = get_path('HEAD', 'dir')
     assert path.samefile(other) == False
