@@ -7,7 +7,7 @@ with open('README.rst') as f:
 
 setup(
     name='gitpathlib',
-    version='0.1',
+    version='0.2',
     description='Object-oriented paths in Git repositories',
     long_description=long_description,
     author='Petr Viktorin',
