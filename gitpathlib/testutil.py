@@ -88,6 +88,14 @@ def setup_doctests():
     """)
     make_repo('project', contents, bare=False)
 
+    contents = yaml.safe_load("""
+        - tree:
+            file1: same content
+            file2: same content
+            different_file: different content
+    """)
+    make_repo('dupes', contents, bare=False)
+
     def cleanup():
         temp_dir
         os.chdir(previous_wd)

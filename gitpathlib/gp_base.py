@@ -692,6 +692,37 @@ class BaseGitPath:
         result.mode = mode
         return result
 
+    def samefile(self, other_path):
+        """Return whether this path points to the same file as other_path
+
+        If the other path is not a GiPath, return False.
+
+        Since Git trees are immutable, this compares the object identities
+        (hashes).
+        This means that files (or even trees) with the same contents are
+        considered the same – even across different repositories.
+
+        >>> f1 = GitPath('dupes', 'HEAD', 'file1')
+        >>> f1.read_text()
+        'same content'
+        >>> f2 = GitPath('dupes', 'HEAD', 'file2')
+        >>> f2.read_text()
+        'same content'
+        >>> f3 = GitPath('dupes', 'HEAD', 'different_file')
+        >>> f3.read_text()
+        'different content'
+
+        >>> f1.samefile(f1)
+        True
+        >>> f1.samefile(f2)
+        True
+        >>> f1.samefile(f3)
+        False
+        """
+        if not isinstance(other_path, BaseGitPath):
+            return False
+        return self.hex == other_path.hex
+
 
 def _preresolve(self, seen):
     """Return a 4-tuple useful for resolve() and readlink-like operations

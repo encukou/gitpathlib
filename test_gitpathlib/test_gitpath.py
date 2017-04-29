@@ -15,6 +15,24 @@ from gitpathlib import testutil
 def testrepo(tmpdir):
     contents = yaml.safe_load("""
         - tree:
+            same:
+                file: |
+                    Here are the contents of a file
+            same2:
+                file: |
+                    Here are the contents of a file
+            extra:
+                file: |
+                    Here are the contents of a file
+                extra:
+                    Here are the contents of a file
+            diff-filename:
+                different: |
+                    Here are the contents of a file
+            diff-content:
+                file: |
+                    Here are different contents
+        - tree:
             dir:
                 file: |
                     Here are old contents of a file
@@ -964,3 +982,51 @@ def test_open_newline(testrepo, newline, expected):
     with path.open(newline=newline) as f:
         print(f)
         assert f.readlines() == expected
+
+
+@pytest.mark.parametrize(
+    ['rev1', 'path1', 'rev2', 'path2', 'expected'],
+    [
+        ('HEAD^^', 'same/file', 'HEAD', 'dir/file', True),
+        ('HEAD^^', 'same/file', 'HEAD^^', 'same2/file', True),
+        ('HEAD', 'dir/file', 'HEAD', 'dir', False),
+        ('HEAD^^', 'same', 'HEAD^^', 'same2', True),
+        ('HEAD^^', 'same', 'HEAD', 'dir', False),
+        ('HEAD^^', 'same', 'HEAD^^', 'extra', False),
+        ('HEAD^^', 'same', 'HEAD^^', 'diff-filename', False),
+        ('HEAD^^', 'same', 'HEAD^^', 'diff-content', False),
+        ('HEAD', 'dir/file', 'HEAD', 'link', True),
+        ('HEAD', 'link-to-dir', 'HEAD', 'dir', True),
+        ('HEAD', 'link', 'HEAD', 'link', True),
+    ])
+def test_samefile(testrepo, rev1, path1, rev2, path2, expected):
+    path1 = gitpathlib.GitPath(testrepo.path, rev1, path1)
+    path2 = gitpathlib.GitPath(testrepo.path, rev2, path2)
+    assert path1.samefile(path2) == expected
+
+
+@pytest.mark.parametrize(
+    ['path', 'exception'],
+    [
+        ('nonexistent-file', gitpathlib.ObjectNotFoundError),
+        ('broken-link', gitpathlib.ObjectNotFoundError),
+        ('self-loop-link', RuntimeError),
+    ])
+def test_samefile_bad_path(testrepo, path, exception):
+    path1 = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
+    path2 = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
+    with pytest.raises(exception):
+        path1.samefile(path2)
+
+
+@pytest.mark.parametrize(
+    'other',
+    [
+        'a string',
+        Path('/dir'),
+        Path('dir'),
+        3j-8,
+    ])
+def test_samefile_otherobject(testrepo, other):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir')
+    assert path.samefile(other) == False
