@@ -535,7 +535,6 @@ def test_resolve_good(testrepo, path, expected, strict):
         ('/abs-broken-link/more', '/nonexistent-file/more'),
         ('/dir/nonexistent/..', '/dir'),
         ('/dir/nonexistent/.', '/dir/nonexistent'),
-        ('/dir/file/.', '/dir/file'),
         #('/dir/file/..', '/dir'),  # XXX - what to do here?
     ])
 def test_resolve_ugly(testrepo, path, expected, strict):

@@ -525,7 +525,8 @@ class BaseGitPath:
         ``False`` is also returned if the path doesn’t exist; other errors
         are propagated.
         """
-        return readlink(self) is not None
+        parent, sibling, link, exists = _preresolve(self, set())
+        return link is not None
 
     is_socket = _return_false
     is_fifo = _return_false
@@ -606,22 +607,33 @@ class BaseGitPath:
         return self.read_bytes().decode(encoding=encoding, errors=errors)
 
 
-def readlink(self):
-    try:
-        parent = resolve(self.parent, True, set())
-    except ObjectNotFoundError:
-        return None
-    if not parent.exists:
-        return None
+def _preresolve(self, seen):
+    """Return a 4-tuple useful for resolve() and readlink-like operations
+
+    Arguments:
+        self: The path in question.
+        seen: Set of unresolved sylinks seen so far, used for detecting symlink
+              loops. Pass an empty set() when calling this function externally.
+
+    The return value is:
+    - Resolved parent path
+    - "Sibling" -- resolved path (usually a child of the resolved parent)
+    - Symlink target as a string, or None
+    - Whether the path ("sibling") exists
+    """
+    if self is self.parent:
+        return self, self, None, True
+
+    parent = resolve(self.parent, False, seen)
     if self.name == '..':
-        return None
+        return parent, parent.parent, None, parent._gp_exists
     if parent is self.parent:
         sibling = self
     else:
         sibling = parent._gp_make_child(self.name)
-    if not sibling._gp_exists:
-        return None
-    return sibling._gp_read_link
+    if not parent._gp_exists or not sibling._gp_exists:
+        return parent, sibling, None, False
+    return parent, sibling, sibling._gp_read_link, True
 
 
 def resolve(self, strict, seen):
@@ -634,21 +646,14 @@ def resolve(self, strict, seen):
         pass
 
     def _resolve():
-        if self is self.parent:
-            return self
-        parent = resolve(self.parent, strict, seen)
-        if self.name == '..':
-            return parent.parent
-        if parent is self.parent:
-            sibling = self
-        else:
-            sibling = parent._gp_make_child(self.name)
-        if not sibling._gp_exists:
+        parent, sibling, link, exists = _preresolve(self, seen)
+
+        if not exists:
             if strict:
                 raise ObjectNotFoundError(str(sibling))
             else:
                 return sibling
-        link = sibling._gp_read_link
+
         if link is not None:
             if self in seen:
                 raise RuntimeError("Symlink loop from '{}'".format(self))
