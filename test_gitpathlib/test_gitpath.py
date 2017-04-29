@@ -29,6 +29,13 @@ def testrepo(tmpdir):
                 subdir:
                     file: contents
                     link-back: [link, ../..]
+                    file-utf8: ċóňťëñŧş ☺
+                    file-utf16: [binary, [255, 254, 11, 1, 243, 0, 72, 1, 101,
+                                          1, 235, 0, 241, 0, 103, 1, 95, 1, 32,
+                                          0, 58, 38]]
+                    file-binary: [binary, [115, 111, 109, 101, 0, 100, 97, 116,
+                                           97, 255, 255]]
+                    file-lines: "unix\\nwindows\\r\\nmac\\rnone"
             link: [link, dir/file]
             broken-link: [link, nonexistent-file]
             link-to-dir: [link, dir]
@@ -824,3 +831,98 @@ def test_read_text_exc(testrepo, path, exception):
     path = gitpathlib.GitPath(testrepo.path, 'HEAD', path)
     with pytest.raises(exception):
         path.read_text()
+
+
+def test_open(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file')
+    with path.open() as f:
+        assert f.read() == 'contents'
+
+
+def test_open_rt(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file')
+    with path.open(mode='rt') as f:
+        assert f.read() == 'contents'
+
+
+def test_open_utf8(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf8')
+    with path.open() as f:
+        assert f.read() == 'ċóňťëñŧş ☺'
+
+
+def test_open_utf8_explicit(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf8')
+    with path.open(encoding='utf-8') as f:
+        assert f.read() == 'ċóňťëñŧş ☺'
+
+
+def test_open_utf8_bad(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf16')
+    with pytest.raises(UnicodeDecodeError):
+        with path.open() as f:
+            f.read()
+
+
+def test_open_utf8_errors(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf16')
+    expected = '��\x0b\x01�\x00H\x01e\x01�\x00�\x00g\x01_\x01 \x00:&'
+    with path.open(errors='replace') as f:
+        assert f.read() == expected
+
+
+def test_open_utf16(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-utf16')
+    with path.open(encoding='utf-16') as f:
+        assert f.read() == 'ċóňťëñŧş ☺'
+
+
+@pytest.mark.parametrize(
+    'mode', ['', 'w', 'x', 'a', 'b', 't', '+', 'U', 'rr', 'rbt', 'bt',
+             'r+', 'rw', 'rx', 'ra', '?'])
+def test_open_bad_mode(testrepo, mode):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/file')
+    with pytest.raises(ValueError):
+        path.open(mode=mode)
+
+
+def test_open_binary(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+    with path.open('rb') as f:
+        assert f.read() == b'some\x00data\xff\xff'
+
+
+def test_open_binary_encoding(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+    with pytest.raises(ValueError):
+        path.open('rb', encoding='utf-8')
+
+
+def test_open_binary_errors(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+    with pytest.raises(ValueError):
+        path.open('rb', errors='strict')
+
+
+def test_open_binary_newline(testrepo):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-binary')
+    with pytest.raises(ValueError):
+        path.open('rb', newline='')
+
+
+@pytest.mark.parametrize(
+    ['newline', 'expected'],
+    [
+        (None, ['unix\n', 'windows\n', 'mac\n', 'none']),
+        ('', ['unix\n', 'windows\r\n', 'mac\r', 'none']),
+        ('\n', ['unix\n', 'windows\r\n', 'mac\rnone']),
+        ('\r\n', ['unix\nwindows\r\n', 'mac\rnone']),
+        ('\r', ['unix\nwindows\r', '\nmac\r', 'none']),
+    ])
+def test_open_newline(testrepo, newline, expected):
+    path = gitpathlib.GitPath(testrepo.path, 'HEAD', 'dir/subdir/file-lines')
+    with path.open('rb') as f:
+        assert f.read() == b'unix\nwindows\r\nmac\rnone'
+    with path.open(newline=newline) as f:
+        print(f)
+        assert f.readlines() == expected

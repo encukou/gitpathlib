@@ -29,6 +29,9 @@ def make_tree(repo, description):
             if value[0] == 'link':
                 item = repo.create_blob(value[1])
                 attr = pygit2.GIT_FILEMODE_LINK
+            elif value[0] == 'binary':
+                item = repo.create_blob(bytes(value[1]))
+                attr = pygit2.GIT_FILEMODE_BLOB
             elif value[0] == 'executable':
                 item = repo.create_blob(value[1])
                 attr = pygit2.GIT_FILEMODE_BLOB_EXECUTABLE

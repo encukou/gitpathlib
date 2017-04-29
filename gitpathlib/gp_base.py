@@ -1,6 +1,7 @@
 import functools
 import pathlib
 import fnmatch
+import io
 
 from .util import reify
 
@@ -616,6 +617,71 @@ class BaseGitPath:
         if errors is None:
             errors = 'strict'
         return self.read_bytes().decode(encoding=encoding, errors=errors)
+
+    def open(self, mode='r', buffering=-1, encoding=None, errors=None,
+             newline=None):
+        """Open the file pointed to by the path.
+
+        This behaves similarly to the built-in :func:`open` function:
+
+        >>> p = GitPath('project', 'HEAD', 'README')
+        >>> with p.open() as f:
+        ...     f.readline()
+        ...
+        'bla bla'
+
+        *mode* can only be a subset of modes supported by :func:`open`.
+        Git objects are immutable, so they cannot be opened for writing.
+        The available modes are ``'rt'`` and ``'rb'``:
+
+        ========= ====================================
+        Character Meaning
+        ========= ====================================
+        ``'r'``   open for reading
+        ``'b'``   binary mode
+        ``'t'``   text mode (default)
+        ========= ====================================
+
+        *buffering* is currently ignored; the whole file is buffered.
+
+        *encoding* and *errors* default to ``'utf8'`` and ``'strict'``,
+        respectively.
+
+        """
+        if not isinstance(mode, str):
+            raise TypeError("invalid mode: %r" % mode)
+        modes = set(mode)
+        if modes - set("rbt") or len(mode) > len(modes):
+            if set('wx') & modes:
+                raise ValueError('cannot open Git blob for writing')
+            if set('a+') & modes:
+                raise ValueError('cannot open Git blob for appending')
+            raise ValueError("invalid mode: %r" % mode)
+        if 'r' not in modes:
+            raise ValueError("unknown mode: %r" % mode)
+        text = "t" in modes
+        binary = "b" in modes
+        if text and binary:
+            raise ValueError("can't have text and binary mode at once")
+        if encoding is None:
+            encoding = 'utf-8'
+        elif binary:
+            raise ValueError("binary mode doesn't take an encoding argument")
+        if errors is None:
+            errors = 'strict'
+        elif binary:
+            raise ValueError("binary mode doesn't take an errors argument")
+        if binary and newline is not None:
+            raise ValueError("binary mode doesn't take a newline argument")
+
+        result = io.BytesIO(self.read_bytes())
+        #result = BufferedReader(result, buffering)
+        if binary:
+            return result
+
+        result = io.TextIOWrapper(result, encoding, errors, newline, False)
+        result.mode = mode
+        return result
 
 
 def _preresolve(self, seen):
