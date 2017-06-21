@@ -47,7 +47,7 @@ In ``pathlib``, these properties hold the Windows drive and root, respectively.
 
 The :attr:`~GitPath.anchor` property (the first part of :attr:`~GitPath.parts`
 holds a concatenation of the repository and ``root``.
-Unlike in ``pathlib``, the two are separated by a semicolon:
+Unlike in ``pathlib``, the two are separated by a colon:
 
 >>> p.anchor
 '.../repo:31b40fbbe41b1bc46cb85acb1ccb89a3ab182e98'
