@@ -24,7 +24,7 @@ General properties
 ------------------
 
 Git paths are immutable, hashable, comparable and orderable.
-They are case-insensitive.
+They are case-sensitive.
 
 >>> GitPath('./repo') == GitPath('./repo')
 True
