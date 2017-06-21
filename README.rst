@@ -1,7 +1,7 @@
 gitpathlib
 ==========
 
-An read-only implementation of Python's `pathlib`_ that works on Git trees.
+A read-only implementation of Python's `pathlib`_ that works on Git trees.
 
 .. _pathlib: https://docs.python.org/3/library/pathlib.html
 
