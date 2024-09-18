@@ -15,6 +15,13 @@ from gitpathlib.gp_pygit import PygitBackend
 from gitpathlib.gp_subprocess import SubprocessBackend
 
 
+def gp_hex(obj):
+    """Get a gitpathlib object's ID as the 40-char hex string"""
+    hexstring = str(obj.id)
+    assert len(hexstring) == 40, hexstring
+    return hexstring
+
+
 @pytest.fixture(scope='session')
 def testrepo(tmpdir_factory):
     contents = yaml.safe_load("""
@@ -98,7 +105,7 @@ def get_path(request, testrepo):
 
 @pytest.fixture
 def part0(testrepo):
-    tree = testrepo.head.peel(pygit2.Tree).hex
+    tree = gp_hex(testrepo.head.peel(pygit2.Tree))
     return os.path.realpath(testrepo.path) + ':' + tree
 
 @pytest.fixture
@@ -109,18 +116,18 @@ def cloned_repo(tmpdir, testrepo):
 
 def test_head(testrepo, get_path):
     path = get_path()
-    assert hex_oid(path) == testrepo.head.peel(pygit2.Tree).hex
+    assert hex_oid(path) == gp_hex(testrepo.head.peel(pygit2.Tree))
 
 
 def test_parent(testrepo, get_path):
     path = get_path('HEAD^')
     parent = testrepo.head.peel(pygit2.Commit).parents[0]
-    assert hex_oid(path) == parent.peel(pygit2.Tree).hex
+    assert hex_oid(path) == gp_hex(parent.peel(pygit2.Tree))
 
 
 def test_components(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_parts_empty(get_path, part0):
@@ -186,32 +193,32 @@ def test_ne_different_roots(get_path):
 
 def test_slash(testrepo, get_path):
     path = get_path() / 'dir'
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir'))
 
 
 def test_slash_multiple(testrepo, get_path):
     path = get_path() / 'dir' / 'file'
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_slash_combined(testrepo, get_path):
     path = get_path() / 'dir/file'
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_slash_pathlib(testrepo, get_path):
     path = get_path() / Path('dir/file')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_slash_absolute_str(testrepo, get_path):
     path = get_path('HEAD', 'dir') / '/dir/file'
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_slash_absolute_path(testrepo, get_path):
     path = get_path('HEAD', 'dir') / Path('/dir/file')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_no_open(testrepo, get_path):
@@ -222,7 +229,7 @@ def test_no_open(testrepo, get_path):
 def test_str_and_repr(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
     repo = os.path.realpath(testrepo.path)
-    hex = testrepo.revparse_single('HEAD:').hex
+    hex = gp_hex(testrepo.revparse_single('HEAD:'))
     expected = "gitpathlib.GitPath('{repo}', '{hex}', 'dir', 'file')".format(
         repo=repo, hex=hex)
     assert str(path) == expected
@@ -242,13 +249,13 @@ def test_drive(get_path, testrepo):
 
 def test_root(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
-    assert path.root == testrepo.revparse_single('HEAD:').hex
+    assert path.root == gp_hex(testrepo.revparse_single('HEAD:'))
 
 
 def test_anchor(testrepo, get_path):
     path = get_path('HEAD', 'dir', 'file')
     repodir = os.path.realpath(testrepo.path)
-    tree = testrepo.revparse_single('HEAD:').hex
+    tree = gp_hex(testrepo.revparse_single('HEAD:'))
     assert path.anchor == repodir + ':' + tree
 
 
@@ -340,32 +347,32 @@ def test_is_reserved(get_path):
 
 def test_joinpath(testrepo, get_path):
     path = get_path().joinpath('dir')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir'))
 
 
 def test_joinpath_multiple(testrepo, get_path):
     path = get_path().joinpath('dir', 'file')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_joinpath_combined(testrepo, get_path):
     path = get_path().joinpath('dir/file')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_joinpath_pathlib(testrepo, get_path):
     path = get_path().joinpath(Path('dir/file'))
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_joinpath_absolute_str(testrepo, get_path):
     path = get_path('HEAD', 'dir').joinpath('/dir/file')
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 def test_joinpath_absolute_path(testrepo, get_path):
     path = get_path('HEAD', 'dir').joinpath(Path('/dir/file'))
-    assert hex_oid(path) == testrepo.revparse_single('HEAD:dir/file').hex
+    assert hex_oid(path) == gp_hex(testrepo.revparse_single('HEAD:dir/file'))
 
 
 @pytest.mark.parametrize(

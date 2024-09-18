@@ -28,7 +28,7 @@ class PygitBackend:
         return child
 
     def hex(self, path):
-        return get_obj(path).hex
+        return str(get_obj(path).id)
 
     def has_entry(self, path, name):
         tree = get_obj(path).peel(pygit2.Tree)
