@@ -150,13 +150,13 @@ def test_dotdot(get_path, part0):
 
 def test_hash(get_path):
     path1 = get_path('HEAD')
-    path2 = get_path('master')
+    path2 = get_path('main')
     assert hash(path1) == hash(path2)
 
 
 def test_eq(get_path):
     path1 = get_path('HEAD')
-    path2 = get_path('master')
+    path2 = get_path('main')
     assert path1 == path2
 
 

@@ -62,10 +62,10 @@ Path equivalence
 ----------------
 
 For most path operations, the particular repository does not matter.
-For example, if *master* is the current branch, ``rev=HEAD`` and ``rev=master``
+For example, if *main* is the current branch, ``rev=HEAD`` and ``rev=main``
 are interchangeable:
 
->>> GitPath('./repo', rev='HEAD') == GitPath('./repo', rev='master')
+>>> GitPath('./repo', rev='HEAD') == GitPath('./repo', rev='main')
 True
 
 In fact, even the repository does not influence comparisons.
