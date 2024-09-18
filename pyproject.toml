@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitpathlib"
+version = "0.2"
+description = "Object-oriented paths in Git repositories"
+readme = "README.rst"
+authors = [
+    {name = "Petr Viktorin", email = "encukou@gmail.com"},
+]
+dependencies = [
+    "pygit2",
+]
+requires-python = ">=3.8"
+keywords = ["git", "pathlib"]
+license = {text = "MIT"}
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Repository = "https://github.com/encukou/gitpathlib"
+
+[tool.setuptools]
+packages = ["gitpathlib"]
