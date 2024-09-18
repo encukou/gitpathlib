@@ -66,3 +66,24 @@ for clarification. I'd be happy to help you get started.
 
 .. _Issues page: https://github.com/encukou/gitpathlib/issues
 .. _this guide: https://guides.github.com/activities/contributing-to-open-source/
+
+
+Changelog
+---------
+
+0.3 (2023-09-18)
+................
+
+Update to work with recent git & pygit2
+
+
+0.2 (2017-04-29)
+................
+
+Implement the pathlib API
+
+
+0.1 (2017-04-18)
+................
+
+Initial public version

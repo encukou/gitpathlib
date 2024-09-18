@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitpathlib"
-version = "0.2"
+version = "0.3"
 description = "Object-oriented paths in Git repositories"
 readme = "README.rst"
 authors = [
