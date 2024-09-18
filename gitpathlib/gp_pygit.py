@@ -2,14 +2,15 @@ import functools
 import pathlib
 
 import pygit2
+from pygit2.enums import ObjectType
 
 from .gp_base import NotATreeError, NotABlobError
 
 GIT_TYPES = {
-    pygit2.GIT_OBJ_COMMIT: 'commit',
-    pygit2.GIT_OBJ_TREE: 'tree',
-    pygit2.GIT_OBJ_BLOB: 'blob',
-    pygit2.GIT_OBJ_TAG: 'tag',
+    ObjectType.COMMIT: 'commit',
+    ObjectType.TREE: 'tree',
+    ObjectType.BLOB: 'blob',
+    ObjectType.TAG: 'tag',
 }
 
 class PygitBackend:
