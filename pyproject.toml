@@ -11,9 +11,9 @@ authors = [
     {name = "Petr Viktorin", email = "encukou@gmail.com"},
 ]
 dependencies = [
-    "pygit2",
+    "pygit2 >= 1.15",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["git", "pathlib"]
 license = {text = "MIT"}
 classifiers = [
